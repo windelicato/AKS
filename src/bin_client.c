@@ -8,10 +8,46 @@
 #include "serial.h"
 #include "comm.h"
 #include "lightbar_functions.h"
+#include "i2c_functions.h"
+#include "AKS_errors.h"
 
 #define MAXBUFLEN 100
+#define NUM_BINS 5
+
+int num_bins = NUM_BINS;
+int num_scales = NUM_BINS;
 
 struct scale_list s;
+pthread_t* tid;
+pthread_attr_t* attr;
+
+//Initialize AKS for operation
+void init() {
+	sleep(1);
+	//Initialize the different AKS systems
+	int temp;
+	if((i2c_init())<0) {//Updated to handle error reporting internally
+		//Restart system or re-attempt initialization?
+	}
+	if((temp = bins_init(&s,num_bins))<0){
+		aks_critical_error(temp);
+	}
+	if((temp = scales_init(&s))<0) {
+		aks_critical_error(temp);
+	}
+
+	tid = (pthread_t*)malloc(num_scales*(sizeof(pthread_t)));
+	attr = (pthread_t*)malloc(num_scales*(sizeof(pthread_attr_t)));
+
+	int i;
+	for (i = 0; i<num_bins; ++i) {
+		pthread_attr_init(&attr[i]);
+		if (pthread_create(&tid[i], &attr[i], picked, &s.scale[i]) != 0) {
+			perror("Unable to create thread");//ERROR!
+			exit(-1);
+		}
+	}
+}
 
 void print_pick_info(int bin) {
 	printf("Bin number %d picked an item\n", bin);
@@ -30,10 +66,12 @@ void detected_pick(int bin) {
 
 int main(int argc, const char *argv[])
 {
+	/*
+	//Start of Initialization
 	sleep(0.1);
-
-	scales_init(&s, 5);
-
+	
+	bin_init(&s, 5);
+	
 	int num_scales = open_scales(&s);
 	printf("%d\n", num_scales);
 
@@ -48,12 +86,18 @@ int main(int argc, const char *argv[])
 			exit(-1);
 		}
 	}
+	//End of Initialization
+	*/
 
+	init();
+	
+	/*	
+	//Start of the Message Receiving Process
 	// RECIEVE PACKET
 	char *message_send = malloc(sizeof(char)*9*MAXBUFLEN);
 	char *message_recv = malloc(sizeof(char)*9*MAXBUFLEN);
-
-	while (1) {
+	*/
+	while (1) {/*
 		memset(message_send, '\0', 9*MAXBUFLEN);
 		memset(message_recv, '\0', 9*MAXBUFLEN);
 
@@ -87,8 +131,26 @@ int main(int argc, const char *argv[])
 //		for (i=0; i<10; i++) {
 //			printf("TOKEN %d: %s\n", i, tokens[i]);
 //		}
+		//End of the Message Receiving Process
+		*/	
 
+		//TEST
+		s.scale[0].quantity_needed = 1;
+		enableLightBar(s.scale[0].lightbar);
+		s.scale[1].quantity_needed = 0;
+		disableLightBar(s.scale[1].lightbar);
+		s.scale[2].quantity_needed = 1;
+		enableLightBar(s.scale[2].lightbar);
+		s.scale[3].quantity_needed = 0;
+		disableLightBar(s.scale[3].lightbar);	
+		s.scale[4].quantity_needed = 1;
+		enableLightBar(s.scale[4].lightbar);
+		//TEST
+		
+
+		//Start of the Picking Process
 		while(1){
+			int i;
 			for(i = 0; i<num_scales; i++) {
 				if(check_lightbar_picked(i,&(s.sem_lightbar[i]))==0) {
 					if(s.scale[i].hand_in_bin == 0) {
@@ -104,7 +166,8 @@ int main(int argc, const char *argv[])
 						//Do nothing
 					}
 				}
-				if(check_percent_full(i,&(s.sem_weight[i])) == s.scale[i].percent_full){
+
+				if((check_percent_full(i,&(s.sem_weight[i])) == s.scale[i].percent_full)){
 				}
 				else {
 					s.scale[i].percent_full = check_percent_full(i,&(s.sem_weight[i]));
@@ -121,14 +184,19 @@ int main(int argc, const char *argv[])
 
 			if(done_picking){
 				printf("here\n");
-				break;
+				//break;
 			}
-
-			sleep(0.25);
 		}
+		//End of the Picking Process
 
+		printf("Done Picking!!!");
+		
+		/*
+		//Start of the Message Reply Process
 		message_send = message_recv;
 		send_msg(argv[1], message_send);
+		//End of the Message Reply Process
+		*/
 	}
 
 

@@ -30,8 +30,8 @@ int check_lightbar_picked(int bin, sem_t* lock);
 
 double check_percent_full(int bin, sem_t* lock);
 
-int scales_init(struct scale_list* scales, int num_scales);
+int bins_init(struct scale_list* scales, int num_scales);
 
-int open_scales(struct scale_list* scales);
+int scales_init(struct scale_list* scales);
 
 #endif

@@ -11,10 +11,12 @@ TEST = ./tests
 vpath %.h ./include
 vpath %.c ./src
 
-EXECS = bin_client olp_client
+EXECS = bin_client 
 
 all: $(EXECS)
 
+$(OBJ)/AKS_errors.o: $(INC)/AKS_errors.h $(SRC)/AKS_errors.c
+	$(CC) $(CFLAGS) -c $(SRC)/AKS_errors.c -o $(OBJ)/AKS_errors.o
 
 $(OBJ)/i2c_functions.o: $(INC)/i2c_functions.h $(SRC)/i2c_functions.c 
 	$(CC) $(CFLAGS)  -c $(SRC)/i2c_functions.c -o $(OBJ)/i2c_functions.o 
@@ -32,8 +34,8 @@ $(OBJ)/serial.o: $(INC)/serial.h $(SRC)/serial.c
 	$(CC) $(CFLAGS) -c $(SRC)/serial.c -o $(OBJ)/serial.o -lpthread
 
  
-bin_client: $(OBJ)/comm.o $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/lightbar_functions.o $(OBJ)/i2c_functions.o 
-	$(CC) $(CFLAGS) $(SRC)/bin_client.c  $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/comm.o $(OBJ)/i2c_functions.o $(OBJ)/lightbar_functions.o -o $(BIN)/bin_client -lpthread $(MYSQLFLAGS)
+bin_client: $(OBJ)/AKS_errors.o $(OBJ)/scan.o $(OBJ)/comm.o  $(OBJ)/serial.o $(OBJ)/lightbar_functions.o $(OBJ)/i2c_functions.o 
+	$(CC) $(CFLAGS) $(SRC)/bin_client.c $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/AKS_errors.o $(OBJ)/comm.o $(OBJ)/i2c_functions.o $(OBJ)/lightbar_functions.o -o $(BIN)/bin_client $(MYSQLFLAGS) -lpthread -lm
 
 olp_client: $(OBJ)/comm.o $(OBJ)/scan.o
 	$(CC) $(CFLAGS) $(SRC)/olp_client.c $(OBJ)/scan.o $(OBJ)/comm.o -o $(BIN)/olp_client $(MYSQLFLAGS)
