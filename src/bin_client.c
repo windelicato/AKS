@@ -264,7 +264,7 @@ int send_msg(const char *ip, char *message)
 
 	freeaddrinfo(servinfo);
 
-//	printf("talker: sent %d bytes to %s\n", numbytes, ip);
+	//printf("talker: sent %d bytes to %s\n", numbytes, ip);
 	close(sockfd);
 
 	return 0;
@@ -279,7 +279,7 @@ int main(int argc, const char *argv[])
 		//fgets(message, MAXBUFLEN, stdin);
 
 		send_msg(argv[1], message);
-//		get_msg(argv[1]);
+		get_msg(argv[1]);
 	}
 	
 	return 0;
