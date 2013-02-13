@@ -4,22 +4,34 @@
 
 int main(int argc, const char *argv[])
 {
-
-	int usbdev; /* handle to FTDI device */
-	char command[5]; /* buffer of data to send */
-	char response[20]; /* receive buffer */
-	//system("stty -F /dev/ttyUSB0 115200 cs8 -cstopb -parity -icanon min 1 time 1");
-
-	if ( usbdev = open("/dev/ttyUSB0", O_RDWR) < 0) {
+	FILE *file = fopen("/dev/ttyUSB0","r");
+	if(!file){
 		perror("Unable to open device");
 		exit(-1);
 	}
 
-	//write(usbdev, command, 2);
-	read(usbdev, response, 1);
-	close(usbdev);	
+	printf("Reading...\n");
 
-	printf("%s\n",response);
+	while(1){
+		char buff[100];
+		float weights[10];
+		float total = 0;
+		int i;
+		for(i=0; i<10; fgets(buff, 100, file)) {
+			float weight;
+
+			fgets(buff, 100, file);
+			weight = atof(buff);
+			if(weight != 0.0) {	
+				weights[i] = weight;	
+				total += weight;
+				i++;
+			}
+		}
+		printf("%f\n", total/10);
+	}
+
+	close(file);	
 
 	return 0;
 }
