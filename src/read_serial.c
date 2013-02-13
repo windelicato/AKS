@@ -5,9 +5,17 @@
 
 #define WEIGHTS 5
 #define AVGS 20
-#define DIFF 0.01
+#define DIFF  		0.01
+#define W_POWER 	0.27
+#define W_REMOTE 	0.40
+#define W_PAMPHLET 	0.23
+#define W_PAPER	 	0.06
+#define W_EMPTY		3.65
+#define ERROR		0.015
+#define STABLE_INTERVAL 30
 
 float avg = 0;
+float W_MAX = 0;
 
 int main(int argc, const char *argv[])
 {
@@ -26,6 +34,7 @@ int main(int argc, const char *argv[])
 	int cb_i = 0;
 	int avg_i = 0;
 	short stable = 1;
+	float prev_weight = 0;
 
 	while(fgets(buff, 100, file)) {
 		float weight;
@@ -47,30 +56,75 @@ int main(int argc, const char *argv[])
 			avg += weights[i];
 		}
 		avg = avg/WEIGHTS;
-
 		avgs[avg_i] = avg;	
 
-		if ( avg_i == 0 ) {
-			if ( fabs(avgs[9] - avgs[avg_i]) < DIFF) {
-				stable = 1;
-			} else{
-				stable = 0;
+		for(i = 0; i < AVGS ; i++){
+
+			if ( i == 0 ) {
+				if ( fabs(avgs[AVGS-1] - avgs[i]) < DIFF) {
+					stable = 1;
+				} else{
+					stable = 0;
+					break;
+				}
+			}
+			else {
+				if ( fabs(avgs[i-1] - avgs[i]) < DIFF) {
+					stable = 1;
+				} else{
+					stable = 0;
+					break;
+				}
 			}
 		}
-		else {
-			if ( fabs(avgs[avg_i-1] - avgs[avg_i]) < DIFF) {
-				stable = 1;
-			} else{
-				stable = 0;
+		
+//		float stable_avg=0;
+//		for(i = 0; i < AVGS ; i++){
+//			stable_avg+=avgs[i];
+//		}
+//		stable_avg/= AVGS;
+//		if( fabs(stable_avg - avg) < DIFF) {
+//			stable = 1;
+//		} else {
+//			stable = 0;
+//		}
+
+
+		int t;
+		if ( !stable ) {
+			t=0;
+		}
+		else{
+			if(t >= STABLE_INTERVAL) {
+				if (t == STABLE_INTERVAL) {
+					float percent_full = 0;
+					if ( prev_weight - avg  < -ERROR ) {
+						printf("\n\nAdded Weight! (%f lb)\n\n", avg-prev_weight);
+						W_MAX = avg;
+					} else if( prev_weight - avg < ERROR) {
+					} else if( prev_weight - avg < W_PAPER){
+						percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
+						printf("Paper picked (%d Percent Full)\n",(int)percent_full);
+					} else if( prev_weight - avg < W_PAMPHLET){
+						percent_full = (avg - W_EMPTY)*100/ (W_MAX-W_EMPTY);
+						printf("Pamphlet picked (%d Percent Full)\n",(int)percent_full);
+					} else if( prev_weight - avg < W_POWER){
+						percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
+						printf("Power cable picked (%d Percent Full)\n",(int)percent_full);
+					} else if( prev_weight - avg < W_REMOTE){
+						percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
+						printf("Remote picked (%d Percent Full)\n",(int)percent_full);
+					} else {
+					}
+				}
+				prev_weight = avg;
+				t++;
+			}
+			else {
+				t++;
 			}
 		}
 
-		if ( !stable ) {
-			printf("unstable!\n");
-		}
-		else{
-			printf("\n");
-		}
 
 		if(avg_i==AVGS-1) {
 			avg_i=0;
