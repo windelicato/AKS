@@ -35,29 +35,29 @@ int main(int argc, const char *argv[])
 
 	printf("Reading...\n");
 
-	char input[20];
-	printf("Calibrate? Y/N\n");
-	fgets(input,sizeof input, stdin);
-	if (input[0] == 'Y') {
-		printf("Empty the bin. Press enter to set weight\n");
-		fgets(input, sizeof input, stdin);
-		fgets(buff, 100, file);
-		float weight = atof(buff);
-		while (weight != 0) {
-			fgets(buff, 100, file);
-			weight = atof(buff);
-		}
-		W_EMPTY = weight;
-		printf("Add items to bin\n");
-		fgets(input, sizeof input, stdin);
-		fgets(buff, 100, file);
-		weight = atof(buff);
-		while (weight != 0) {
-			fgets(buff, 100, file);
-			weight = atof(buff);
-		}
-		W_MAX = weight;
-	}
+//	char input[20];
+//	printf("Calibrate? Y/N\n");
+//	fgets(input,sizeof input, stdin);
+//	if (input[0] == 'Y') {
+//		printf("Empty the bin. Press enter to set weight\n");
+//		fgets(input, sizeof input, stdin);
+//		fgets(buff, 100, file);
+//		float weight = atof(buff);
+//		while (weight != 0) {
+//			fgets(buff, 100, file);
+//			weight = atof(buff);
+//		}
+//		W_EMPTY = weight;
+//		printf("Add items to bin\n");
+//		fgets(input, sizeof input, stdin);
+//		fgets(buff, 100, file);
+//		weight = atof(buff);
+//		while (weight != 0) {
+//			fgets(buff, 100, file);
+//			weight = atof(buff);
+//		}
+//		W_MAX = weight;
+//	}
 
 
 	while(fgets(buff, 100, file)) {
