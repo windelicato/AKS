@@ -21,7 +21,7 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int get_msg(void)
+int get_msg(const char* ip)
 {
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
@@ -29,8 +29,7 @@ int get_msg(void)
 	int numbytes;
 	struct sockaddr_storage their_addr;
 	char buf[MAXBUFLEN];
-	socklen_t addr_len;
-	char s[INET6_ADDRSTRLEN];
+	socklen_t addr_len; char s[INET6_ADDRSTRLEN];
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
@@ -68,22 +67,20 @@ int get_msg(void)
 
 	//printf("listener: waiting to recvfrom...\n");
 
-	while(1) {
-		addr_len = sizeof their_addr;
-		if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-						(struct sockaddr *)&their_addr, &addr_len)) == -1) {
-			perror("recvfrom");
-			exit(1);
-		}
-
-		//printf("listener: got packet from %s\n",
-		//		inet_ntop(their_addr.ss_family,
-		//			get_in_addr((struct sockaddr *)&their_addr),
-		//			s, sizeof s));
-		//printf("listener: packet is %d bytes long\n", numbytes);
-		buf[numbytes] = '\0';
-		printf("%s", buf);
+	addr_len = sizeof their_addr;
+	if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
+					(struct sockaddr *)&their_addr, &addr_len)) == -1) {
+		perror("recvfrom");
+		exit(1);
 	}
+
+	//printf("listener: got packet from %s\n",
+	//		inet_ntop(their_addr.ss_family,
+	//			get_in_addr((struct sockaddr *)&their_addr),
+	//			s, sizeof s));
+	//printf("listener: packet is %d bytes long\n", numbytes);
+	buf[numbytes] = '\0';
+	printf("\n%s > %s", ip, buf);
 
 	close(sockfd);
 
@@ -140,12 +137,12 @@ int main(int argc, const char *argv[])
 {
 	/*char* message = malloc(sizeof(char)*20);*/
 	while(1) {
+		get_msg(argv[1]);
 		char message[256];
-		printf(" > ");
+		printf("\nlocalhost > ");
 		fgets(message, 256, stdin);
 
 		send_msg(argv[1], message);
-		get_msg();
 	}
 	
 	return 0;
