@@ -21,14 +21,15 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int get_msg(const char* ip)
+
+int get_msg(const char* ip, char* buf)
 {
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	int numbytes;
 	struct sockaddr_storage their_addr;
-	char buf[MAXBUFLEN];
+	//char buf[MAXBUFLEN];
 	socklen_t addr_len; char s[INET6_ADDRSTRLEN];
 
 	memset(&hints, 0, sizeof hints);
@@ -80,7 +81,8 @@ int get_msg(const char* ip)
 	//			s, sizeof s));
 	//printf("listener: packet is %d bytes long\n", numbytes);
 	buf[numbytes] = '\0';
-	printf("\n%s > %s", ip, buf);
+	//printf("\n%s > %s", ip, buf);
+	//return buf;
 
 	close(sockfd);
 
@@ -136,13 +138,38 @@ int send_msg(const char *ip, char *message)
 int main(int argc, const char *argv[])
 {
 	/*char* message = malloc(sizeof(char)*20);*/
+	printf("**************************\n");
+	printf("*  	WELCOME TO 	 *\n");
+	printf("*    MY FAKE OLP TEST    *\n");
+	printf("*************************\n\n");
+
+	char * buf = (char*)malloc(sizeof(char)*MAXBUFLEN);
+	char message[MAXBUFLEN];
+
 	while(1) {
-		char message[256];
+
+		printf("Request the following items to be picked: \n");
+		printf(" 	1) Paper\n");
+		printf(" 	2) Pamphlet\n");
+		printf(" 	3) Power Cable\n");
+		printf(" 	4) Remote\n");
+		printf(" 	5) Component Cable\n\n");
 		printf("\nlocalhost > ");
-		fgets(message, 256, stdin);
+		fgets(message, MAXBUFLEN, stdin);
+		printf(" requesting pick...\n");
 
 		send_msg(argv[1], message);
-		get_msg(argv[1]);
+		get_msg(argv[1], buf);
+		if( buf == message) {
+			printf("Correct pick!\n");
+			printf("Picked: %s\n",buf);
+		} else{
+			printf("Incorrect pick!\n");
+			printf("Picked: %s\n",buf);
+		}
+
+		printf("\n\n");
+
 	}
 	
 	return 0;

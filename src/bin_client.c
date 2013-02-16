@@ -103,23 +103,23 @@ char* picked(FILE* file){
 						} else if( prev_weight - avg < W_PAPER){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Paper picked (%d Percent Full)\n",(int)percent_full);
-							return "Paper";
+							return "1";
 						} else if( prev_weight - avg < W_PAMPHLET){
 							percent_full = (avg - W_EMPTY)*100/ (W_MAX-W_EMPTY);
 							printf("Pamphlet picked (%d Percent Full)\n",(int)percent_full);
-							return "Pamphlet";
+							return "2";
 						} else if( prev_weight - avg < W_POWER){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Power cable picked (%d Percent Full)\n",(int)percent_full);
-							return "Power cable";
+							return "3";
 						} else if( prev_weight - avg < W_REMOTE){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Remote picked (%d Percent Full)\n",(int)percent_full);
-							return "Remote";
+							return "4";
 						} else if( prev_weight - avg < W_COMP){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Comp cable  picked (%d Percent Full)\n",(int)percent_full);
-							return "Component Cable";
+							return "5";
 						} else {
 						}
 					}
