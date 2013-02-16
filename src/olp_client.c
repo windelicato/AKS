@@ -154,13 +154,13 @@ int main(int argc, const char *argv[])
 		printf(" 	3) Power Cable\n");
 		printf(" 	4) Remote\n");
 		printf(" 	5) Component Cable\n\n");
-		printf("\nlocalhost > ");
+		printf("\nrequest > ");
 		fgets(message, MAXBUFLEN, stdin);
 		printf(" requesting pick...\n");
 
 		send_msg(argv[1], message);
 		get_msg(argv[1], buf);
-		if( buf == message) {
+		if( buf[0] == message[0] ){
 			printf("Correct pick!\n");
 			printf("Picked: %s\n",buf);
 		} else{
