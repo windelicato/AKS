@@ -137,12 +137,12 @@ int main(int argc, const char *argv[])
 {
 	/*char* message = malloc(sizeof(char)*20);*/
 	while(1) {
-		get_msg(argv[1]);
 		char message[256];
 		printf("\nlocalhost > ");
 		fgets(message, 256, stdin);
 
 		send_msg(argv[1], message);
+		get_msg(argv[1]);
 	}
 	
 	return 0;
