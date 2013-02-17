@@ -72,7 +72,7 @@ int main(void)
 
 	freeaddrinfo(servinfo);
 
-	printf("listener: waiting to recvfrom...\n");
+	//printf("listener: waiting to recvfrom...\n");
 
 	while(1) {
 		addr_len = sizeof their_addr;
@@ -82,13 +82,13 @@ int main(void)
 			exit(1);
 		}
 
-		printf("listener: got packet from %s\n",
-				inet_ntop(their_addr.ss_family,
-					get_in_addr((struct sockaddr *)&their_addr),
-					s, sizeof s));
-		printf("listener: packet is %d bytes long\n", numbytes);
+		//printf("listener: got packet from %s\n",
+		//		inet_ntop(their_addr.ss_family,
+		//			get_in_addr((struct sockaddr *)&their_addr),
+		//			s, sizeof s));
+		//printf("listener: packet is %d bytes long\n", numbytes);
 		buf[numbytes] = '\0';
-		printf("listener: packet contains \"%s\"\n", buf);
+		printf("%s", buf);
 	}
 
 	close(sockfd);
