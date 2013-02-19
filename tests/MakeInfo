@@ -1,0 +1,1 @@
+gcc -mysql.c -O2 `mysql_config --cflags --libs` -Wall
