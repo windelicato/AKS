@@ -3,6 +3,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <math.h>
+#include <pthread.h>
 
 #define WEIGHTS 	5
 #define AVGS 		30
@@ -15,7 +16,7 @@
 #define ERROR 		0.01
 #define STABLE_INTERVAL	25 
 
-char* picked(FILE* file){
+void *picked(void *arg){
 	float avg = 0;
 	float W_MAX = 0;
 	float W_EMPTY = 3.52;
@@ -27,6 +28,7 @@ char* picked(FILE* file){
 	short stable = 1;
 	float prev_weight = 0;
 
+	FILE * file = (FILE*) arg;
 
 	printf("Reading...\n");
 
@@ -83,30 +85,35 @@ char* picked(FILE* file){
 					if (t == STABLE_INTERVAL) {
 						float percent_full = 0;
 						if ( prev_weight - avg  < -ERROR ) {
-							printf("\n\nAdded Weight! (%f lb)\n\n", avg-prev_weight);
+					//		printf("\n\nAdded Weight! (%f lb)\n\n", avg-prev_weight);
 							W_MAX = avg;
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 						} else if( prev_weight - avg < ERROR) {
 						} else if( prev_weight - avg < W_PAPER){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Paper picked (%d Percent Full)\n",(int)percent_full);
-							return "1";
+						//	return "1";
+							//pthread_exit(NULL);
 						} else if( prev_weight - avg < W_PAMPHLET){
 							percent_full = (avg - W_EMPTY)*100/ (W_MAX-W_EMPTY);
 							printf("Pamphlet picked (%d Percent Full)\n",(int)percent_full);
-							return "2";
+						//	return "2";
+							//pthread_exit(NULL);
 						} else if( prev_weight - avg < W_POWER){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Power cable picked (%d Percent Full)\n",(int)percent_full);
-							return "3";
+						//	return "3";
+							//pthread_exit(NULL);
 						} else if( prev_weight - avg < W_REMOTE){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Remote picked (%d Percent Full)\n",(int)percent_full);
-							return "4";
+						//	return "4";
+							//pthread_exit(NULL);
 						} else if( prev_weight - avg < W_COMP){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
 							printf("Comp cable  picked (%d Percent Full)\n",(int)percent_full);
-							return "5";
+						//	return "5";
+							//pthread_exit(NULL);
 						} else {
 						}
 					}

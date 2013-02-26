@@ -1,4 +1,5 @@
 #!/bin/bash
+# RUN AS ROOT
 
 while [ 1 ]; do
 	for (( i=0; i<5; i++)); do
