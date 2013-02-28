@@ -73,15 +73,7 @@ int get_msg(const char* ip, char* buf)
 		perror("recvfrom");
 		exit(1);
 	}
-
-	//printf("listener: got packet from %s\n",
-	//		inet_ntop(their_addr.ss_family,
-	//			get_in_addr((struct sockaddr *)&their_addr),
-	//			s, sizeof s));
-	//printf("listener: packet is %d bytes long\n", numbytes);
 	buf[numbytes] = '\0';
-	//printf("\n%s > %s", ip, buf);
-	//return buf;
 
 	close(sockfd);
 

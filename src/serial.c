@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <pthread.h>
+#include "serial.h"
 
 #define WEIGHTS 	5
 #define AVGS 		30
@@ -16,7 +17,38 @@
 #define ERROR 		0.01
 #define STABLE_INTERVAL	25 
 
+int last_picked = -1;
+
+int check_picked(sem_t* lock){
+	int temp;
+	sem_wait(lock);
+	temp = last_picked;
+	sem_post(lock);
+	return temp;
+}
+
+void set_picked(sem_t* lock, int input){
+	sem_wait(lock);
+	last_picked = input;
+	sem_post(lock);
+}
+
+int scales_init(struct scale_list* l, int num_scales) {
+	l->scale = calloc(num_scales, sizeof(struct scale));
+	l->size = num_scales;
+	sem_init(&l->sem,1,1);
+
+	int i;
+	for(i=0; i < num_scales; i++) {
+		l->scale[i].lock = &l->sem;
+	}
+
+	return 1;
+}
+
 void *picked(void *arg){
+	struct scale *s = (struct scale*) arg; // Which scale is associated with this thread?
+
 	float avg = 0;
 	float W_MAX = 0;
 	float W_EMPTY = 3.52;
@@ -28,13 +60,12 @@ void *picked(void *arg){
 	short stable = 1;
 	float prev_weight = 0;
 
-	FILE * file = (FILE*) arg;
 
 	printf("Reading...\n");
 
 	while(1) { 			// Main loop
 		float weight;
-		fgets(buff, 100, file);
+		fgets(buff, 100, s->fid); 
 		weight = atof(buff);
 		if(weight != 0.0) {	// Read in valid weight
 

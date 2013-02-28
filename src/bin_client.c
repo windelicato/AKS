@@ -10,17 +10,20 @@
 
 #define MAXBUFLEN 100
 
+struct scale_list s;
 
 int main(int argc, const char *argv[])
 {
-	FILE *scales[10];
+	scales_init(&s, 10);
+
 	char *device_path = (char*) malloc(sizeof(char)*MAXBUFLEN);
 	int i, num_scales;
 
 	for( i=0; i<10; i++) {
 		sprintf(device_path,"/dev/ttyUSB%d",i);
-		scales[i] = fopen(device_path,"r");
-		if(!scales[i]){
+		s.scale[i].fid = fopen(device_path,"r");
+		s.scale[i].id  = i;
+		if(s.scale[i].fid == 0){
 			printf("Unable to open device %d\n",i);
 			num_scales = i;
 			break;
@@ -33,24 +36,17 @@ int main(int argc, const char *argv[])
 	for (i = 0; i<num_scales; ++i){
 		printf("%d\n",i);
 		pthread_attr_init(&attr[i]);
-		if (pthread_create(&tid[i], &attr[i], picked, scales[i]) != 0){
+		if (pthread_create(&tid[i], &attr[i], picked, &s.scale[i]) != 0){
 			perror("Unable to create thread");
 			exit(-1);
 		}
 	}
 
-	sleep(100000);
-
-	for (i=0; i<num_scales; ++i) {
-		pthread_join(tid[i], NULL);
-	}
-
-//	while(1) {
-//		for( i=0; i<num_scales; i++) {
-//			char *message = picked(scales[i]);
-//			printf("Picked %s from scale %d\n", message, i);
-//		}
+	sleep(10000000);
+//	while(1){
+//		check_picked(&s);
 //	}
+
 
 	return 0;
 }
