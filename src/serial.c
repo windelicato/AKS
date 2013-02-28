@@ -8,6 +8,7 @@
 
 #define WEIGHTS 	5
 #define AVGS 		30
+#define MAXBUFLEN 100
 #define DIFF 		0.01
 #define W_POWER 	0.27
 #define W_REMOTE 	0.40
@@ -45,6 +46,22 @@ int scales_init(struct scale_list* l, int num_scales) {
 	}
 
 	return 1;
+}
+
+int open_scales(struct scale_list *s) {
+	char *device_path = (char*) malloc(sizeof(char)*MAXBUFLEN);
+	int i, num_scales;
+	for(i=0; i < s->size; i++) {
+		sprintf(device_path,"/dev/ttyUSB%d",i);
+		s->scale[i].fid = fopen(device_path,"r");
+		s->scale[i].id  = i;
+		if(s->scale[i].fid == 0){
+			printf("Unable to open device %d\n",i);
+			num_scales = i;
+			break;
+		}
+	}
+	return num_scales;
 }
 
 void *picked(void *arg){

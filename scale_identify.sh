@@ -8,6 +8,6 @@ while [ 1 ]; do
 		echo ""
 
 	done
-	sleep 0.1
+	sleep 0.2
 	clear
 done

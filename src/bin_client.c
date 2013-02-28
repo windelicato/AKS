@@ -16,23 +16,12 @@ int main(int argc, const char *argv[])
 {
 	scales_init(&s, 10);
 
-	char *device_path = (char*) malloc(sizeof(char)*MAXBUFLEN);
-	int i, num_scales;
-
-	for( i=0; i<10; i++) {
-		sprintf(device_path,"/dev/ttyUSB%d",i);
-		s.scale[i].fid = fopen(device_path,"r");
-		s.scale[i].id  = i;
-		if(s.scale[i].fid == 0){
-			printf("Unable to open device %d\n",i);
-			num_scales = i;
-			break;
-		}
-	}
+	int num_scales = open_scales(&s);
 
 	pthread_t tid[num_scales];
 	pthread_attr_t attr[num_scales];
-
+	
+	int i;
 	for (i = 0; i<num_scales; ++i){
 		printf("%d\n",i);
 		pthread_attr_init(&attr[i]);
