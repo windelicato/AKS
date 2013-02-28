@@ -42,11 +42,12 @@ int main(int argc, const char *argv[])
 		}
 	}
 
-	sleep(10000000);
-//	while(1){
-//		check_picked(&s);
-//	}
-
+	while(1){
+		int bin_num = check_picked(&s.sem);
+		if(bin_num >= 0) {
+			printf("Bin number %d picked an item \n",bin_num);
+		}
+	}
 
 	return 0;
 }

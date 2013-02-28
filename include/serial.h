@@ -16,6 +16,10 @@ struct scale_list{
 	struct scale *scale;
 };
 
+int check_picked(sem_t* lock);
+
+void set_picked(sem_t* lock, int inpu);
+
 void* picked(void *arg);
 
 #endif

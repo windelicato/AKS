@@ -23,6 +23,7 @@ int check_picked(sem_t* lock){
 	int temp;
 	sem_wait(lock);
 	temp = last_picked;
+	last_picked = -1;
 	sem_post(lock);
 	return temp;
 }
@@ -122,29 +123,24 @@ void *picked(void *arg){
 						} else if( prev_weight - avg < ERROR) {
 						} else if( prev_weight - avg < W_PAPER){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							printf("Paper picked (%d Percent Full)\n",(int)percent_full);
-						//	return "1";
-							//pthread_exit(NULL);
+						//	printf("Paper picked (%d Percent Full)\n",(int)percent_full);
+							set_picked(s->lock,s->id);
 						} else if( prev_weight - avg < W_PAMPHLET){
 							percent_full = (avg - W_EMPTY)*100/ (W_MAX-W_EMPTY);
-							printf("Pamphlet picked (%d Percent Full)\n",(int)percent_full);
-						//	return "2";
-							//pthread_exit(NULL);
+						//	printf("Pamphlet picked (%d Percent Full)\n",(int)percent_full);
+							set_picked(s->lock,s->id);
 						} else if( prev_weight - avg < W_POWER){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							printf("Power cable picked (%d Percent Full)\n",(int)percent_full);
-						//	return "3";
-							//pthread_exit(NULL);
+						//	printf("Power cable picked (%d Percent Full)\n",(int)percent_full);
+							set_picked(s->lock,s->id);
 						} else if( prev_weight - avg < W_REMOTE){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							printf("Remote picked (%d Percent Full)\n",(int)percent_full);
-						//	return "4";
-							//pthread_exit(NULL);
+						//	printf("Remote picked (%d Percent Full)\n",(int)percent_full);
+							set_picked(s->lock,s->id);
 						} else if( prev_weight - avg < W_COMP){
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							printf("Comp cable  picked (%d Percent Full)\n",(int)percent_full);
-						//	return "5";
-							//pthread_exit(NULL);
+					//		printf("Comp cable  picked (%d Percent Full)\n",(int)percent_full);
+							set_picked(s->lock,s->id);
 						} else {
 						}
 					}
