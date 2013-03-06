@@ -49,21 +49,15 @@ char * get_collat(char* STB_ID){
 
 	num_fields = mysql_num_fields(result);
 	if ( mysql_num_rows(result)> 0 ) {
-//		printf("\n\nITEMS FOR  ORDER # %d \n", stb_id);
-//		printf("---------------------------\n");
-
 		while (( row = mysql_fetch_row(result)))
 		{
 			for(i = 0; i < num_fields; i++)
 			{
-//				printf("%s\t", row[i] ? row[i] : "NULL");
 				strcat(returns,row[i] ? row[i] : "");
 				strcat(returns," ");
 			}
-//			printf("\n");
 		}
 	}
-
 	return returns;
 
 	mysql_free_result(result);

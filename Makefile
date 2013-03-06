@@ -34,6 +34,9 @@ bin_client: $(OBJ)/comm.o $(OBJ)/serial.o
 olp_client: $(OBJ)/comm.o ${OBJ}/scan.o
 	$(CC) $(CFLAGS) $(SRC)/olp_client.c $(OBJ)/scan.o $(OBJ)/comm.o -o $(BIN)/olp_client $(MYSQLFLAGS)
 
+olp_recv_test: $(OBJ)/comm.o 
+	$(CC) $(CFLAGS) $(TEST)/olp_recv_test.c $(OBJ)/comm.o -o $(TEST)/olp_recv_test
+
 i2c_test: $(OBJ)/i2c_functions.o 
 	$(CC) $(CFLAGS) $(TEST)/i2c_test.c $(OBJ)/i2c_functions.o -o $(BIN)/i2c_test -I/usr/local/include -L/usr/local/lib -lwiringPi
 

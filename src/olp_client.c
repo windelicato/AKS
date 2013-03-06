@@ -10,34 +10,46 @@
 
 int main(int argc, const char *argv[])
 {
+	char *message_send = malloc(sizeof(char)*9*MAXBUFLEN);
+	char *message_recv = malloc(sizeof(char)*9*MAXBUFLEN);
 	char *collat = malloc(sizeof(char)*9*MAXBUFLEN);
+
 	printf("**************************\n");
 	printf("*  	WELCOME TO 	 *\n");
 	printf("*    MY FAKE OLP TEST    *\n");
 	printf("*************************\n\n");
 
-	char *scan = get_scan("/home/aks/scan.txt");
-	printf("Requesting parts from STB# %s\n\n",scan);
+	while (1) {
+		memset(message_send, '\0', 9*MAXBUFLEN);
+		memset(message_recv, '\0', 9*MAXBUFLEN);
+		memset(collat , '\0', 9*MAXBUFLEN);
 
-	collat = get_collat(scan);
-	printf("%s\n", collat);
+		char *scan = get_scan("/home/aks/scan.txt");
+		printf("Requesting parts from STB# %s\n\n",scan);
 
-	//	printf("\nrequest > ");
-	//	fgets(message, MAXBUFLEN, stdin);
-	//	printf(" requesting pick...\n");
+		collat = get_collat(scan);
 
-	//	send_msg(argv[1], message);
-	//	get_msg(argv[1], buf);
-	//	if( buf[0] == message[0] ){
-	//		printf("Correct pick!\n");
-	//		printf("Picked: %s\n",buf);
-	//	} else{
-	//		printf("Incorrect pick!\n");
-	//		printf("Picked: %s\n",buf);
-	//	}
+		strcat(message_send,"1 ");
+		strcat(message_send,scan);
+		strcat(message_send," ");
+		strcat(message_send,collat);
 
-	//	printf("\n\n");
+		printf("packet sent: %s\n",message_send);
 
-	
+		send_msg(argv[1], message_send);
+		get_msg(argv[1], message_recv);
+
+		if( message_recv[0] == message_send[0] ){
+			printf("Correct pick!\n");
+			printf("Picked: %s\n",message_recv);
+		} else{
+			printf("Incorrect pick!\n");
+			printf("Picked: %s\n",message_recv);
+		}
+
+		sleep(2);
+
+		printf("\n\n");
+
 	return 0;
 }
