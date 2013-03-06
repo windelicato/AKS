@@ -6,11 +6,12 @@ INC = ./include
 SRC = ./src
 OBJ = ./obj
 BIN = ./bin
+TEST = ./tests
 
 vpath %.h ./include
 vpath %.c ./src
 
-EXECS = bin_client olp_client
+EXECS = bin_client olp_client 
 
 all: $(EXECS)
 
@@ -24,12 +25,17 @@ $(OBJ)/serial.o: $(INC)/serial.h $(SRC)/serial.c
 $(OBJ)/scan.o: $(INC)/scan.h $(SRC)/scan.c
 	$(CC) $(CFLAGS) -c  $(SRC)/scan.c -o $(OBJ)/scan.o $(MYSQLFLAGS)
  
+$(OBJ)/i2c_functions.o: $(INC)/i2c_functions.h $(SRC)/i2c_functions.c 
+	$(CC) $(CFLAGS)  -c $(SRC)/i2c_functions.c -o $(OBJ)/i2c_functions.o 
+
 bin_client: $(OBJ)/comm.o $(OBJ)/serial.o
 	$(CC) $(CFLAGS) $(SRC)/bin_client.c  $(OBJ)/serial.o $(OBJ)/comm.o -o $(BIN)/bin_client -lpthread
 
 olp_client: $(OBJ)/comm.o ${OBJ}/scan.o
 	$(CC) $(CFLAGS) $(SRC)/olp_client.c $(OBJ)/scan.o $(OBJ)/comm.o -o $(BIN)/olp_client $(MYSQLFLAGS)
 
+i2c_test: $(OBJ)/i2c_functions.o 
+	$(CC) $(CFLAGS) $(TEST)/i2c_test.c $(OBJ)/i2c_functions.o -o $(BIN)/i2c_test -I/usr/local/include -L/usr/local/lib -lwiringPi
 
 clean:
 	rm ./bin/*

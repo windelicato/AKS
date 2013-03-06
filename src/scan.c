@@ -26,11 +26,15 @@ char * get_scan(char* path) {
 }
 
 char * get_collat(char* STB_ID){
+
+	char *returns = malloc(sizeof(char)*8*MAX_BUF_LEN);
+	memset(returns,'\0',8*MAX_BUF_LEN);
+
 	MYSQL *conn;
 	MYSQL_RES * result;
 	MYSQL_ROW row;
 	char query[300] = { 0 };
-	char base_query[300] = "SELECT c.sku_id, c.sku_disp FROM stb s left join collat c on s.sku_id = c.sku_id where s.stb_id = ";
+	char base_query[300] = "SELECT c.sku_id FROM stb s left join collat c on s.sku_id = c.sku_id where s.stb_id = ";
 	int num_fields;
 	int i;
 	int stb_id;
@@ -45,24 +49,25 @@ char * get_collat(char* STB_ID){
 
 	num_fields = mysql_num_fields(result);
 	if ( mysql_num_rows(result)> 0 ) {
-		printf("\n\nITEMS FOR  ORDER # %d \n", stb_id);
-		printf("---------------------------\n");
+//		printf("\n\nITEMS FOR  ORDER # %d \n", stb_id);
+//		printf("---------------------------\n");
 
 		while (( row = mysql_fetch_row(result)))
 		{
 			for(i = 0; i < num_fields; i++)
 			{
-				printf("%s\t", row[i] ? row[i] : "NULL");
+//				printf("%s\t", row[i] ? row[i] : "NULL");
+				strcat(returns,row[i] ? row[i] : "");
+				strcat(returns," ");
 			}
-			printf("\n");
+//			printf("\n");
 		}
 	}
 
-	return STB_ID;
+	return returns;
 
 	mysql_free_result(result);
 	mysql_close(conn);
-
 
 	return 0;
 }

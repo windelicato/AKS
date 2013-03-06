@@ -10,17 +10,17 @@
 
 int main(int argc, const char *argv[])
 {
-	/*char* message = malloc(sizeof(char)*20);*/
+	char *collat = malloc(sizeof(char)*9*MAXBUFLEN);
 	printf("**************************\n");
 	printf("*  	WELCOME TO 	 *\n");
 	printf("*    MY FAKE OLP TEST    *\n");
 	printf("*************************\n\n");
 
-	char * scan = get_scan("/home/aks/scan.txt");
-	printf("%s\n",scan);
+	char *scan = get_scan("/home/aks/scan.txt");
+	printf("Requesting parts from STB# %s\n\n",scan);
 
-	get_collat(scan);
-
+	collat = get_collat(scan);
+	printf("%s\n", collat);
 
 	//	printf("\nrequest > ");
 	//	fgets(message, MAXBUFLEN, stdin);
