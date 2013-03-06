@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mysql.h>
 
 #include "comm.h"
 #include "scan.h"
@@ -15,18 +16,10 @@ int main(int argc, const char *argv[])
 	printf("*    MY FAKE OLP TEST    *\n");
 	printf("*************************\n\n");
 
-	char * buf = (char*)malloc(sizeof(char)*MAXBUFLEN);
-	char message[MAXBUFLEN];
-	char last_message[MAXBUFLEN];
+	char * scan = get_scan("/home/aks/scan.txt");
+	printf("%s\n",scan);
 
-	while(1) {
-
-		message = get_scan("/home/aks/scan.txt");
-		if (message != last_message){ 
-			prinf("%s\n", message);
-			last_message = message;
-		}
-	}
+	get_collat(scan);
 
 
 	//	printf("\nrequest > ");
