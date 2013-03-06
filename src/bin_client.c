@@ -34,7 +34,8 @@ int main(int argc, const char *argv[])
 	while(1){
 		int bin_num = check_picked(&s.sem);
 		if(bin_num >= 0) {
-			printf("Bin number %d picked an item \n",bin_num);
+			double perc_full = check_percent_full(&s.sem);
+			printf("Bin number %d picked an item and is %f percent full\n",bin_num,perc_full);
 		}
 	}
 

@@ -24,8 +24,11 @@ int open_scales(struct scale_list *scales);
 // Check the most recently picked item
 int check_picked(sem_t* lock);
 
+// Check the most recently picked bin percent full
+double check_percent_full(sem_t* lock);
+
 // Set the most recently picked item
-void set_picked(sem_t* lock, int input);
+void set_picked(sem_t* lock, int input, double perc);
 
 // Callback for scale theads to handle the pick
 void* picked(void *arg);

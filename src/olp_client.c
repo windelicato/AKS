@@ -13,18 +13,22 @@ int main(int argc, const char *argv[])
 	char *message_send = malloc(sizeof(char)*9*MAXBUFLEN);
 	char *message_recv = malloc(sizeof(char)*9*MAXBUFLEN);
 	char *collat = malloc(sizeof(char)*9*MAXBUFLEN);
+	char *order = malloc(sizeof(char)*MAXBUFLEN);
+	memset(order , '\0', MAXBUFLEN);
 
-	printf("**************************\n");
-	printf("*  	WELCOME TO 	 *\n");
-	printf("*    MY FAKE OLP TEST    *\n");
-	printf("*************************\n\n");
 
 	while (1) {
 		memset(message_send, '\0', 9*MAXBUFLEN);
 		memset(message_recv, '\0', 9*MAXBUFLEN);
 		memset(collat , '\0', 9*MAXBUFLEN);
 
-		char *scan = get_scan("/home/aks/scan.txt");
+		char *scan;
+		do {
+			scan = get_scan("/home/aks/scan.txt");
+			sleep(1);
+		} while(strcmp(order,scan) == 0);
+		strcpy(order, scan);
+
 		printf("Requesting parts from STB# %s\n\n",scan);
 
 		collat = get_collat(scan);
@@ -47,9 +51,8 @@ int main(int argc, const char *argv[])
 			printf("Picked: %s\n",message_recv);
 		}
 
-		sleep(2);
-
 		printf("\n\n");
+	}
 
 	return 0;
 }

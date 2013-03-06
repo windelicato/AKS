@@ -20,7 +20,7 @@ char * get_scan(char* path) {
 	}
 	scan[n] = '\0';
 
-//	printf("%s\n", scan);kkk
+	fclose(file);
 
 	return scan;
 }
