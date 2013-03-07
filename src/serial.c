@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <math.h>
 #include <pthread.h>
+#include "lightbar_functions.h"
+#include "i2c_functions.h"
 #include "serial.h"
 
 #define WEIGHTS 	5
@@ -32,7 +34,6 @@ int check_picked(sem_t* lock){
 }
 double check_percent_full(sem_t* lock){ 
 	int temp;
-
 	sem_wait(lock);
 	temp = last_percent_full;
 	last_percent_full = -1;
@@ -48,6 +49,8 @@ void set_picked(sem_t* lock, int input, double perc){
 }
 
 int scales_init(struct scale_list* l, int num_scales) {
+	
+	setup_i2c_GPIO();
 	l->scale = calloc(num_scales, sizeof(struct scale));
 	l->size = num_scales;
 	sem_init(&l->sem,1,1);
@@ -55,6 +58,7 @@ int scales_init(struct scale_list* l, int num_scales) {
 	int i;
 	for(i=0; i < num_scales; i++) {
 		l->scale[i].lock = &l->sem;
+		disableLightBar(i);
 	}
 
 	return 1;
@@ -69,11 +73,10 @@ int open_scales(struct scale_list *s) {
 		s->scale[i].id  = i;
 		if(s->scale[i].fid == 0){
 			printf("Unable to open device %d\n",i);
-			num_scales = i;
 			break;
 		}
 	}
-	return num_scales;
+	return i;
 }
 
 void *picked(void *arg){
@@ -96,6 +99,7 @@ void *picked(void *arg){
 		float weight;
 		fgets(buff, 100, s->fid); 
 		weight = atof(buff);
+
 		if(weight != 0.0) {	// Read in valid weight
 
 			weights[cb_i] = weight;	 // Add weight to circular buffer
