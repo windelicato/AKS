@@ -12,6 +12,20 @@
 
 struct scale_list s;
 
+void print_pick_info(int bin) {
+	printf("Bin number %d picked an item and is %f percent full\n", bin, check_percent_full(bin, &(s.sem_weight[bin])));
+	printf("SKU: %d \n", s.scale[bin].sku);
+}
+
+void detected_pick(int bin) {
+	if(s.scale[bin].quantity_needed > 0) {
+		//s.scale[bin].quantity_needed--;
+		print_pick_info(bin);
+	} else {
+		printf("Incorrect Pick on Bin: %d \n",bin);
+	}
+}
+
 int main(int argc, const char *argv[])
 {
 	scales_init(&s, 5);
@@ -32,13 +46,24 @@ int main(int argc, const char *argv[])
 	}
 
 	while(1){
-		int bin_num = check_picked(&s.sem);
-		if(bin_num >= 0) {
-			double perc_full = check_percent_full(&s.sem);
-			printf("Bin number %d picked an item and is %f percent full\n",bin_num,perc_full);
-			printf("LIGHTBAR: %d, SKU: %d\n",s.scale[bin_num].lightbar,s.scale[bin_num].sku);
+		int i;
+		for(i = 0; i<num_scales; i++) {
+			if(check_lightbar_picked(i,&(s.sem_lightbar[i]))==0) {
+				if(s.scale[i].hand_in_bin == 0) {
+					s.scale[i].hand_in_bin = 1;
+				} else {
+					//Do nothing
+				}
+			} else {
+				if(s.scale[i].hand_in_bin == 1) {
+					detected_pick(i);
+					s.scale[i].hand_in_bin = 0;
+				} else {
+					//Do nothing
+				}
+			}
 		}
-		sleep(0.5);
+		sleep(0.25);
 	}
 
 	return 0;

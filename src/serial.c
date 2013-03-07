@@ -25,30 +25,47 @@ int lightbars[] = {2, 0, 1, 4, 3};
 int scales[] = {2, 0, 3, 4, 1};
 int skus[] = {11000000, 11018971, 11073767, 11083039, 11180134};
 
-int    last_picked = -1;
-double last_percent_full = -1;
+int* 	last_picked_lightbar;//Array of ints for each bin, like last_picked
+int*    last_picked;//Array of ints for each bin, bins set value to their bin # when picked
+double* last_percent_full;//Array of percent fulls for each bin
 
-int check_picked(sem_t* lock){ 
+int check_weight_picked(int bin, sem_t* lock){ 
 	int temp;
 	sem_wait(lock);
-	temp = last_picked;
-	last_picked = -1;
-	sem_post(lock);
-	return temp;
-}
-double check_percent_full(sem_t* lock){ 
-	int temp;
-	sem_wait(lock);
-	temp = last_percent_full;
-	last_percent_full = -1;
+	temp = last_picked[bin];
+	last_picked[bin] = -1;
 	sem_post(lock);
 	return temp;
 }
 
-void set_picked(sem_t* lock, int input, double perc){
+int check_lightbar_picked(int bin, sem_t* lock) {
+	int temp;
 	sem_wait(lock);
-	last_picked = input;
-	last_percent_full = perc;
+	temp = last_picked_lightbar[bin];
+	//last_picked_lightbar[bin] = -1;
+	sem_post(lock);
+	return temp;
+}
+
+double check_percent_full(int bin, sem_t* lock){ 
+	int temp;
+	sem_wait(lock);
+	temp = last_percent_full[bin];
+	//last_percent_full[bin] = -1;
+	sem_post(lock);
+	return temp;
+}
+
+void set_weight_picked(sem_t* lock, int bin, double perc){
+	sem_wait(lock);
+	last_picked[bin] = bin;
+	last_percent_full[bin] = perc;
+	sem_post(lock);
+}
+
+void set_lightbar_picked(sem_t* lock, int bin, int value) {
+	sem_wait(lock);
+	last_picked_lightbar[bin] = value;
 	sem_post(lock);
 }
 
@@ -57,12 +74,33 @@ int scales_init(struct scale_list* l, int num_scales) {
 	setup_i2c_GPIO();
 	l->scale = calloc(num_scales, sizeof(struct scale));
 	l->size = num_scales;
-	sem_init(&l->sem,1,1);
+	//sem_init(&l->sem,1,1);
+
+	last_picked = (int*)(malloc((sizeof(int))*num_scales));
+	last_picked_lightbar = (int*)(malloc((sizeof(int))*num_scales));
+	last_percent_full = (double*)(malloc((sizeof(double))*num_scales));
+
+	int j;
+	for(j=0; j<num_scales; j++) {
+		last_picked[j] = -1;
+		last_picked_lightbar[j] = -1;
+		last_percent_full[j] = -1;
+	}
+
+	l->sem_weight = (sem_t*)(malloc((sizeof(sem_t))*num_scales));
+	l->sem_lightbar = (sem_t*)(malloc((sizeof(sem_t))*num_scales));
 
 	int i;
 	for(i=0; i < num_scales; i++) {
-		l->scale[i].lock = &l->sem;
-		enableLightBar(i);
+		
+		l->scale[i].quantity_needed = 1;
+		l->scale[i].hand_in_bin = 0;
+
+		l->scale[i].lock_weight = &(l->sem_weight[i]);
+		sem_init(&(l->sem_weight[i]),1,1);
+		l->scale[i].lock_lightbar = &(l->sem_lightbar[i]);
+		sem_init(&(l->sem_lightbar[i]),1,1);
+		disableLightBar(i);
 	}
 
 	return 1;
@@ -106,9 +144,8 @@ void *picked(void *arg){
 		fgets(buff, 100, s->fid); 
 		weight = atof(buff);
 
-		if(readLightBar(s->lightbar) == 0){
-			set_picked(s->lock,s->id,0);
-		}
+		set_lightbar_picked(s->lock_lightbar, s->id, readLightBar(s->lightbar));	
+
 
 		if(weight != 0.0) {	// Read in valid weight
 
@@ -164,7 +201,7 @@ void *picked(void *arg){
 						} else if( prev_weight - avg < ERROR) {
 						} else {
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							set_picked(s->lock,s->id,percent_full);
+							set_weight_picked(s->lock_weight,s->id,percent_full);
 						}
 					}
 					prev_weight = avg;
