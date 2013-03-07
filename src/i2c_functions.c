@@ -92,7 +92,7 @@ void i2c_readGPIOPins(int chip, char* buf) {
 	if(read(i2c_bus, buf, GPIO_PIN_BYTES)!=GPIO_PIN_BYTES) {
 		printf("Error reading bytes from I2C device\n");
 	} else {//TESTING
-		printf("Success reading bytes from I2C device\n");
+	//	printf("Success reading bytes from I2C device\n");
 	}
 }
 

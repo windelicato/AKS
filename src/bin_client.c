@@ -11,8 +11,6 @@
 #define MAXBUFLEN 100
 
 struct scale_list s;
-int lightbars[] = {0, 1, 2, 3, 4};
-int skus[] = {11000000, 11018971, 11073767, 11083039, 11180134};
 
 int main(int argc, const char *argv[])
 {
@@ -26,11 +24,6 @@ int main(int argc, const char *argv[])
 	
 	int i;
 	for (i = 0; i<num_scales; ++i){
-		s.scale[i].lightbar = lightbars[i];
-		s.scale[i].sku = skus[i];
-	}
-
-	for (i = 0; i<num_scales; ++i){
 		pthread_attr_init(&attr[i]);
 		if (pthread_create(&tid[i], &attr[i], picked, &s.scale[i]) != 0){
 			perror("Unable to create thread");
@@ -43,6 +36,7 @@ int main(int argc, const char *argv[])
 		if(bin_num >= 0) {
 			double perc_full = check_percent_full(&s.sem);
 			printf("Bin number %d picked an item and is %f percent full\n",bin_num,perc_full);
+			printf("LIGHTBAR: %d, SKU: %d\n",s.scale[bin_num].lightbar,s.scale[bin_num].sku);
 		}
 		sleep(0.5);
 	}

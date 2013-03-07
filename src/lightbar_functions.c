@@ -35,6 +35,6 @@ void disableLightBar(int lightbar) {
 
 int readLightBar(int lightbar) {
 	char tempBytes[2];
-	i2c_readGPIOPins(lightbar_sensor_IC[lightbar], lightbar_sensor_Pin[lightbar], tempBytes);
-	return (tempBytes[lightbar_sensor_Pin[lightbar]/8])>>(lightbar_sensor_Pin[lightbar]%8);
+	i2c_readGPIOPins(lightbar_sensor_IC[lightbar], tempBytes);
+	return ((tempBytes[lightbar_sensor_Pin[lightbar]/8])>>(lightbar_sensor_Pin[lightbar]%8)&1);
 }

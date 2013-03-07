@@ -21,6 +21,10 @@
 #define STABLE_INTERVAL	25 
 #define W_EMPTY  	0.05
 
+int lightbars[] = {2, 0, 1, 4, 3};
+int scales[] = {2, 0, 3, 4, 1};
+int skus[] = {11000000, 11018971, 11073767, 11083039, 11180134};
+
 int    last_picked = -1;
 double last_percent_full = -1;
 
@@ -58,7 +62,7 @@ int scales_init(struct scale_list* l, int num_scales) {
 	int i;
 	for(i=0; i < num_scales; i++) {
 		l->scale[i].lock = &l->sem;
-		disableLightBar(i);
+		enableLightBar(i);
 	}
 
 	return 1;
@@ -68,9 +72,11 @@ int open_scales(struct scale_list *s) {
 	char *device_path = (char*) malloc(sizeof(char)*MAXBUFLEN);
 	int i, num_scales;
 	for(i=0; i < s->size; i++) {
-		sprintf(device_path,"/dev/ttyUSB%d",i);
+		sprintf(device_path,"/dev/ttyUSB%d",scales[i]);
 		s->scale[i].fid = fopen(device_path,"r");
 		s->scale[i].id  = i;
+		s->scale[i].lightbar  = lightbars[i];
+		s->scale[i].sku  = skus[i];
 		if(s->scale[i].fid == 0){
 			printf("Unable to open device %d\n",i);
 			break;
@@ -99,6 +105,10 @@ void *picked(void *arg){
 		float weight;
 		fgets(buff, 100, s->fid); 
 		weight = atof(buff);
+
+		if(readLightBar(s->lightbar) == 0){
+			set_picked(s->lock,s->id,0);
+		}
 
 		if(weight != 0.0) {	// Read in valid weight
 

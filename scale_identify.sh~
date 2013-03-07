@@ -2,7 +2,7 @@
 # RUN AS ROOT
 
 while [ 1 ]; do
-	for (( i=0; i<5; i++)); do
+	for (( i=0; i<1; i++)); do
 		echo -ne "SCALE $i\t"
 		echo `cat /dev/ttyUSB$i  | head -2 | tail -1`
 		echo ""
