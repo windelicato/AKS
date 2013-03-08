@@ -93,7 +93,7 @@ int scales_init(struct scale_list* l, int num_scales) {
 	int i;
 	for(i=0; i < num_scales; i++) {
 		
-		l->scale[i].quantity_needed = 1;
+		l->scale[i].quantity_needed = 0;
 		l->scale[i].percent_full = 1.00;
 		l->scale[i].hand_in_bin = 0;
 
