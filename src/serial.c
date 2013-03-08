@@ -94,6 +94,7 @@ int scales_init(struct scale_list* l, int num_scales) {
 	for(i=0; i < num_scales; i++) {
 		
 		l->scale[i].quantity_needed = 1;
+		l->scale[i].percent_full = 1.00;
 		l->scale[i].hand_in_bin = 0;
 
 		l->scale[i].lock_weight = &(l->sem_weight[i]);
@@ -198,6 +199,7 @@ void *picked(void *arg){
 						if ( prev_weight - avg  < -ERROR ) {
 							W_MAX = avg;
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
+							set_weight_picked(s->lock_weight,s->id,percent_full);
 						} else if( prev_weight - avg < ERROR) {
 						} else {
 							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);

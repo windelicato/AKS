@@ -13,7 +13,7 @@
 struct scale_list s;
 
 void print_pick_info(int bin) {
-	printf("Bin number %d picked an item and is %f percent full\n", bin, check_percent_full(bin, &(s.sem_weight[bin])));
+	printf("Bin number %d picked an item\n", bin);
 	printf("SKU: %d \n", s.scale[bin].sku);
 }
 
@@ -62,6 +62,13 @@ int main(int argc, const char *argv[])
 					//Do nothing
 				}
 			}
+			if(check_percent_full(i,&(s.sem_weight[i])) == s.scale[i].percent_full){
+			}
+			else {
+				s.scale[i].percent_full = check_percent_full(i,&(s.sem_weight[i]));
+				printf("Bin number %d percent full %f\n",i, s.scale[i].percent_full);
+			}
+
 		}
 		sleep(0.25);
 	}

@@ -10,6 +10,7 @@ struct scale{
 	int quantity_needed;
 	int hand_in_bin;
 	double weight;
+	double percent_full;
 	sem_t *lock_weight;
 	sem_t *lock_lightbar;
 };
