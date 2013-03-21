@@ -1,4 +1,3 @@
-//By: Matt Smith
 //I2C Functions
 
 //Sets up the GPIO expander ICs
