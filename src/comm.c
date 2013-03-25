@@ -38,6 +38,79 @@ int network_init(struct network_data *data){
 	return 1;
 }
 
+void *server_daemon(void *arg){
+	struct network_data *data = (struct network_data*) arg;
+
+	struct sockaddr_in sad; 	// hold server's address
+	struct sockaddr_in cad; 	// hold client's address
+	int sd, sd2; 			// socket descriptors
+	int port;  			// protocol port number
+	socklen_t alen; 		// length of address
+	unsigned int in_index; 		// index of incoming message
+
+	memset((char *) &sad, 0, sizeof(sad)); 	// Initialize SAD to zero
+	sad.sin_family = AF_INET; 	// Internet address type
+	sad.sin_addr.s_addr = INADDR_ANY; 	// Local IP address
+
+	if (PORT > 0)
+		sad.sin_port = htons((u_short)port);
+	else {
+		fprintf(stderr,"SERVER_DAEMON: bad port number %d", PORT);
+		exit(-1);
+	}
+
+	// initialize socket ID
+	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if ( sd < 0 ) {
+		perror("SERVER_DAEMON: socket creation failed");
+	}
+
+	// assign IP/port number to socket where connections come in
+	if (bind(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
+		perror("SERVER_DAEMON: bind failed");
+		exit(-1);
+	}
+
+	// set up socket to receive incoming connections
+	
+	if (listen(sd, QUEUELEN) < 1) {
+		perror("SERVER_DAEMON: listen failed");
+		exit(-1);
+	}
+
+	while (1) {
+		alen = sizeof(cad);
+		
+		if ( (sd2 = accept(sd, (struct sockaddr*)&cad, &alen)) < 0) {
+			perror("SERVER_DAEMON: accept failed");
+			exit(-1);
+		}
+
+		sem_wait(&data->lock_recv);
+		if ( (recv(sd2, &data->msg_recv, MAXBUFLEN, 0) < 0)) {
+				perror("SERVER_DAEMON: could not recvfrom: ");
+				exit(-1);
+		}
+		data->msg_recv[1000] = '\0';
+		sem_post(&data->lock_recv);
+
+		// HANDLE IN_MSG BUFFER
+		
+		sem_wait(&data->lock_send);
+		if(send(sd2, &data->msg_send, strlen(data->msg_send)+1, 0) < 0) {
+			perror("SERVER_DAEMON: could not send: ");
+			exit(-1);
+		}
+		memset(&data->msg_send, '\0', MAXBUFLEN);
+		sem_post(&data->lock_send);
+
+		close(sd2);
+		
+	}
+
+	return 0;
+}
+
 void *get_in_addr(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET) {
@@ -149,79 +222,6 @@ int send_msg(const char *ip, char *message)
 
 	//printf("talker: sent %d bytes to %s\n", numbytes, ip);
 	close(sockfd);
-
-	return 0;
-}
-
-void *server_daemon(void *arg){
-	struct network_data *data = (struct network_data*) arg;
-
-	struct sockaddr_in sad; 	// hold server's address
-	struct sockaddr_in cad; 	// hold client's address
-	int sd, sd2; 			// socket descriptors
-	int port;  			// protocol port number
-	socklen_t alen; 		// length of address
-	unsigned int in_index; 		// index of incoming message
-
-	memset((char *) &sad, 0, sizeof(sad)); 	// Initialize SAD to zero
-	sad.sin_family = AF_INET; 	// Internet address type
-	sad.sin_addr.s_addr = INADDR_ANY; 	// Local IP address
-
-	if (PORT > 0)
-		sad.sin_port = htons((u_short)port);
-	else {
-		fprintf(stderr,"SERVER_DAEMON: bad port number %d", PORT);
-		exit(-1);
-	}
-
-	// initialize socket ID
-	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if ( sd < 0 ) {
-		perror("SERVER_DAEMON: socket creation failed");
-	}
-
-	// assign IP/port number to socket where connections come in
-	if (bind(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
-		perror("SERVER_DAEMON: bind failed");
-		exit(-1);
-	}
-
-	// set up socket to receive incoming connections
-	
-	if (listen(sd, QUEUELEN) < 1) {
-		perror("SERVER_DAEMON: listen failed");
-		exit(-1);
-	}
-
-	while (1) {
-		alen = sizeof(cad);
-		
-		if ( (sd2 = accept(sd, (struct sockaddr*)&cad, &alen)) < 0) {
-			perror("SERVER_DAEMON: accept failed");
-			exit(-1);
-		}
-
-		sem_wait(&data->lock_recv);
-		if ( (recv(sd2, &data->msg_recv, MAXBUFLEN, 0) < 0)) {
-				perror("SERVER_DAEMON: could not recvfrom: ");
-				exit(-1);
-		}
-		data->msg_recv[1000] = '\0';
-		sem_post(&data->lock_recv);
-
-		// HANDLE IN_MSG BUFFER
-		
-		sem_wait(&data->lock_send);
-		if(send(sd2, &data->msg_send, strlen(data->msg_send)+1, 0) < 0) {
-			perror("SERVER_DAEMON: could not send: ");
-			exit(-1);
-		}
-		memset(&data->msg_send, '\0', MAXBUFLEN);
-		sem_post(&data->lock_send);
-
-		close(sd2);
-		
-	}
 
 	return 0;
 }
