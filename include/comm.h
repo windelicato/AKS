@@ -10,6 +10,7 @@ struct network_data{
 	sem_t lock_recv;
 	pthread_t thread_id;
 	pthread_attr_t thread_attr;
+	int size;
 };
 
 void set_mesg_send(struct network_data *data, char* buff);

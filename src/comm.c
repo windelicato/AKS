@@ -29,6 +29,7 @@ void get_mesg_recv(struct network_data *data, char* buff){
 }
 
 int network_init(struct network_data *data, int size){
+	data->size = size;
 	data->msg_recv = malloc(sizeof(char)*size);
 	data->msg_send = malloc(sizeof(char)*size);
 	memset(data->msg_recv,'\0',sizeof(char)*size);
@@ -39,15 +40,14 @@ int network_init(struct network_data *data, int size){
 
 	pthread_attr_init(&data->thread_attr);
 	if( pthread_create(&data->thread_id, &data->thread_attr, server_daemon, &data) < 0) { 
-			perror("Unable to create server daemon thread");
-			exit(-1);
+		perror("Unable to create server daemon thread");
+		exit(-1);
 	}
 
 	return 1;
 }
 
-void *server_daemon(void *arg){
-	struct network_data *data = (struct network_data*) arg;
+/*void *server_daemon(void *arg){
 
 	struct sockaddr_in sad; 	// hold server's address
 	struct sockaddr_in cad; 	// hold client's address
@@ -87,7 +87,7 @@ void *server_daemon(void *arg){
 
 	while (1) {
 		alen = sizeof(cad);
-		
+
 		printf("Accepeting...\n");
 		if ( (sd2 = accept(sd, (struct sockaddr*)&cad, &alen)) < 0) {
 			perror("SERVER_DAEMON: accept failed");
@@ -96,8 +96,8 @@ void *server_daemon(void *arg){
 
 		sem_wait(&data->lock_recv);
 		if ( (recv(sd2, data->msg_recv, MAXBUFLEN, 0) < 0)) {
-				perror("SERVER_DAEMON: could not recvfrom: ");
-				exit(-1);
+			perror("SERVER_DAEMON: could not recvfrom: ");
+			exit(-1);
 		}
 		data->msg_recv[MAXBUFLEN] = '\0';
 		sem_post(&data->lock_recv);
@@ -105,7 +105,7 @@ void *server_daemon(void *arg){
 		// HANDLE IN_MSG BUFFER
 		strcpy(data->msg_send, data->msg_recv);
 		printf("Sending...\n");
-		
+
 		sem_wait(&data->lock_send);
 		if(send(sd2, &data->msg_send, strlen(data->msg_send)+1, 0) < 0) {
 			perror("SERVER_DAEMON: could not send: ");
@@ -115,11 +115,91 @@ void *server_daemon(void *arg){
 		sem_post(&data->lock_send);
 
 		close(sd2);
-		
+
 	}
 
 	return 0;
+} */
+
+void *server_daemon(void* arg) {
+
+	struct network_data *data = (struct network_data*) arg;
+	struct sockaddr_in sad;  // structure to hold server's address  
+	struct sockaddr_in cad;  // structure to hold client's address  
+	int sd, sd2;               // socket descriptors                        
+	int port = atoi(SERVERPORT);                            // protocol port number            
+	socklen_t alen;          // length of address                   
+	unsigned int in_index;   // index to incoming message buffer
+
+	// prepare address data structure
+
+	memset((char *)&sad,0,sizeof(sad)); // zero out sockaddr structure      
+	sad.sin_family = AF_INET;                 // set family to Internet             
+	sad.sin_addr.s_addr = INADDR_ANY;   // set the local IP address 
+
+	if (port > 0)
+		// test for illegal value       
+		sad.sin_port = htons((u_short)port);
+	else {
+		// print error message and exit 
+		fprintf(stderr,"ECHOD: bad port number %s\n", port);
+		exit(-1);
+	}
+
+	// create socket 
+
+	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sd < 0) {
+		perror("ECHOD: socket creation failed");
+		exit(-1);
+	}
+
+	// assign IP/port number to socket where connections come in 
+
+	if (bind(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
+		perror("ECHOD: bind failed");
+		exit(-1);
+	}
+
+	// set up socket to receive incomming connections 
+
+	if (listen(sd, QUEUELEN) < 0) {
+		perror("ECHOD: listen failed");
+		exit(-1);
+	}
+
+	// main server loop - accept and handle requests 
+
+	while (1) {
+		alen = sizeof(cad);
+
+		if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
+			perror("ECHOD: accept failed\n");
+			exit(-1);
+		}
+
+		// receive the string sent by client
+		if (recv(sd2, data->msg_recv, data->size, 0) < 0) {
+			perror("Could not recvfrom: ");
+			exit(-1);
+		}
+
+		data->msg_recv[data->size] = '\0';
+
+		strcpy(data->msg_send, data->msg_recv);
+
+		// send the received string back to client
+		if(send(sd2, data->msg_send, strlen(data->msg_send)+1, 0) < 0) {
+			perror("Could not send: ");
+			exit(-1);
+		}
+
+		memset(data->msg_send, '\0', data->size);
+
+		close(sd2);
+	}
 }
+
 
 void *get_in_addr(struct sockaddr *sa)
 {
