@@ -4,15 +4,17 @@
 #include<semaphore.h>
 
 struct network_data{
-	char msg_recv[1000];
-	char msg_send[1000];
+	char *msg_recv;
+	char *msg_send;
 	sem_t lock_send;
 	sem_t lock_recv;
+	pthread_t thread_id;
+	pthread_attr_t thread_attr;
 };
 
 void set_mesg_send(struct network_data *data, char* buff);
 void get_mesg_send(struct network_data *data, char* buff);
-int network_init();
+int network_init(struct network_data *data, int size);
 void *server_daemon(void *arg);
 
 

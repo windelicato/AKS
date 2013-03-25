@@ -13,7 +13,6 @@
 #define SERVERPORT "4950"
 #define MAXBUFLEN 100
 #define QUEUELEN 5
-#define PORT 6699
 
 // Copies string in buffer buff into next sent network packet
 void set_mesg_send(struct network_data *data, char* buff){
@@ -29,11 +28,20 @@ void get_mesg_recv(struct network_data *data, char* buff){
 	sem_post(&data->lock_recv);
 }
 
-int network_init(struct network_data *data){
-	memset(&data->msg_recv,'\0',sizeof(data->msg_recv));
-	memset(&data->msg_send,'\0',sizeof(data->msg_send));
+int network_init(struct network_data *data, int size){
+	data->msg_recv = malloc(sizeof(char)*size);
+	data->msg_send = malloc(sizeof(char)*size);
+	memset(data->msg_recv,'\0',sizeof(char)*size);
+	memset(data->msg_send,'\0',sizeof(char)*size);
+
 	sem_init(&data->lock_send,1,1);
 	sem_init(&data->lock_recv,1,1);
+
+	pthread_attr_init(&data->thread_attr);
+	if( pthread_create(&data->thread_id, &data->thread_attr, server_daemon, &data) < 0) { 
+			perror("Unable to create server daemon thread");
+			exit(-1);
+	}
 
 	return 1;
 }
@@ -52,10 +60,10 @@ void *server_daemon(void *arg){
 	sad.sin_family = AF_INET; 	// Internet address type
 	sad.sin_addr.s_addr = INADDR_ANY; 	// Local IP address
 
-	if (PORT > 0)
+	if (SERVERPORT > 0)
 		sad.sin_port = htons((u_short)port);
 	else {
-		fprintf(stderr,"SERVER_DAEMON: bad port number %d", PORT);
+		fprintf(stderr,"SERVER_DAEMON: bad port number %d", SERVERPORT);
 		exit(-1);
 	}
 
@@ -72,8 +80,7 @@ void *server_daemon(void *arg){
 	}
 
 	// set up socket to receive incoming connections
-	
-	if (listen(sd, QUEUELEN) < 1) {
+	if (listen(sd, QUEUELEN) < 0) {
 		perror("SERVER_DAEMON: listen failed");
 		exit(-1);
 	}
@@ -81,20 +88,23 @@ void *server_daemon(void *arg){
 	while (1) {
 		alen = sizeof(cad);
 		
+		printf("Accepeting...\n");
 		if ( (sd2 = accept(sd, (struct sockaddr*)&cad, &alen)) < 0) {
 			perror("SERVER_DAEMON: accept failed");
 			exit(-1);
 		}
 
 		sem_wait(&data->lock_recv);
-		if ( (recv(sd2, &data->msg_recv, MAXBUFLEN, 0) < 0)) {
+		if ( (recv(sd2, data->msg_recv, MAXBUFLEN, 0) < 0)) {
 				perror("SERVER_DAEMON: could not recvfrom: ");
 				exit(-1);
 		}
-		data->msg_recv[1000] = '\0';
+		data->msg_recv[MAXBUFLEN] = '\0';
 		sem_post(&data->lock_recv);
 
 		// HANDLE IN_MSG BUFFER
+		strcpy(data->msg_send, data->msg_recv);
+		printf("Sending...\n");
 		
 		sem_wait(&data->lock_send);
 		if(send(sd2, &data->msg_send, strlen(data->msg_send)+1, 0) < 0) {

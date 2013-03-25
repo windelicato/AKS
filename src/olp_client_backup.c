@@ -8,8 +8,6 @@
 
 #define MAXBUFLEN 100
 
-struct network_data n;
-
 int main(int argc, const char *argv[])
 {
 	char *message_send = malloc(sizeof(char)*9*MAXBUFLEN);
@@ -18,10 +16,8 @@ int main(int argc, const char *argv[])
 	char *order = malloc(sizeof(char)*MAXBUFLEN);
 	memset(order , '\0', MAXBUFLEN);
 
-	network_init(&n, MAXBUFLEN);	
 
 	while (1) {
-/*
 		memset(message_send, '\0', 9*MAXBUFLEN);
 		memset(message_recv, '\0', 9*MAXBUFLEN);
 		memset(collat , '\0', 9*MAXBUFLEN);
@@ -44,10 +40,8 @@ int main(int argc, const char *argv[])
 
 		printf("packet sent: %s\n",message_send);
 
-//		set_mesg_send(&n, message_send);
-//		send_msg(argv[1], n.msg_send);
-//		get_msg(argv[1], n.msg_recv);
-//		get_mesg_recv(&n, message_recv);
+		send_msg(argv[1], message_send);
+		get_msg(argv[1], message_recv);
 
 		if( message_recv[0] == message_send[0] ){
 			printf("Correct pick!\n");
@@ -58,7 +52,6 @@ int main(int argc, const char *argv[])
 		}
 
 		printf("\n\n");
-*/
 	}
 
 	return 0;
