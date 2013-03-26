@@ -6,7 +6,7 @@
 #include "comm.h"
 #include "scan.h"
 
-#define MAXBUFLEN 100
+#define MAXBUFLEN 512
 
 struct network_data n;
 

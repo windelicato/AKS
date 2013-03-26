@@ -3,8 +3,38 @@
 #include <mysql.h>
 #include <string.h>
 
-#define MAX_BUF_LEN 100
+#include "scan.h"
+
+#define MAXBUFLEN 512
 #define MAX_ORDERS 1000
+
+char * get_pick_packet() {
+	char *message_send = malloc(sizeof(char) * 9 * MAXBUFLEN);
+	char *order = malloc(sizeof(char) * MAXBUFLEN);
+	memset(message_send, '\0', 9*MAXBUFLEN);
+	memset(order, '\0', MAXBUFLEN);
+
+	// Wait for new item to be scanned
+	char * scan;
+	do {
+		scan = get_scan("/home/aks/scan.txt");
+		usleep(500000);
+	} while(strcmp(order,scan) == 0);
+	strcpy(order, scan);
+
+	// Get collateral from scan
+	char * collat = get_collat(scan);
+
+	// Create packet
+	strcat(message_send, "1 ");
+	strcat(message_send, scan);
+	strcat(message_send, " ");
+	strcat(message_send, collat);
+
+	//printf("%s\n", message_send);
+
+	return message_send;
+}
 
 char * get_scan(char* path) {
 	FILE* file = fopen(path,"r");
@@ -12,14 +42,14 @@ char * get_scan(char* path) {
 		return NULL;
 	}
 
-	char * scan = malloc(sizeof(char)*MAX_BUF_LEN);
+	char * scan = malloc(sizeof(char)*MAXBUFLEN);
 	int c,n =0;
 
 	while ((c = fgetc(file)) != '\n'){
 		scan[n++] = (char) c;
 	}
 	scan[n] = '\0';
-	printf("scan: %s", scan);
+	//printf("scan: %s", scan);
 
 	fclose(file);
 
@@ -28,8 +58,8 @@ char * get_scan(char* path) {
 
 char * get_collat(char* STB_ID){
 
-	char *returns = malloc(sizeof(char)*8*MAX_BUF_LEN);
-	memset(returns,'\0',8*MAX_BUF_LEN);
+	char *returns = malloc(sizeof(char)*8*MAXBUFLEN);
+	memset(returns,'\0',8*MAXBUFLEN);
 
 	MYSQL *conn;
 	MYSQL_RES * result;
