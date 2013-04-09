@@ -24,6 +24,12 @@ $(OBJ)/i2c_functions.o: $(INC)/i2c_functions.h $(SRC)/i2c_functions.c
 $(OBJ)/lightbar_functions.o: $(INC)/lightbar_functions.h $(SRC)/lightbar_functions.c 
 	$(CC) $(CFLAGS)  -c  $(SRC)/lightbar_functions.c -o $(OBJ)/lightbar_functions.o 
 
+$(OBJ)/led_functions.o: $(INC)/led_functions.h $(SRC)/led_functions.c
+	$(CC) $(CFLAGS) -c $(SRC)/led_functions.c -o $(OBJ)/led_functions.o
+
+$(OBJ)/button_functions.o: $(INC)/button_functions.h $(SRC)/button_functions.c
+	$(CC) $(CFLAG) -c $(SRC)/button_functions.c -o $(OBJ)/button_functions.o
+
 $(OBJ)/scan.o: $(INC)/scan.h $(SRC)/scan.c
 	$(CC) $(CFLAGS) -c  $(SRC)/scan.c -o $(OBJ)/scan.o $(MYSQLFLAGS)
 
@@ -34,8 +40,8 @@ $(OBJ)/serial.o: $(INC)/serial.h $(SRC)/serial.c
 	$(CC) $(CFLAGS) -c $(SRC)/serial.c -o $(OBJ)/serial.o -lpthread
 
  
-bin_client: $(OBJ)/AKS_errors.o $(OBJ)/scan.o $(OBJ)/comm.o  $(OBJ)/serial.o $(OBJ)/lightbar_functions.o $(OBJ)/i2c_functions.o 
-	$(CC) $(CFLAGS) $(SRC)/bin_client.c $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/AKS_errors.o $(OBJ)/comm.o $(OBJ)/i2c_functions.o $(OBJ)/lightbar_functions.o -o $(BIN)/bin_client $(MYSQLFLAGS) -lpthread -lm
+bin_client: $(OBJ)/AKS_errors.o $(OBJ)/scan.o $(OBJ)/comm.o  $(OBJ)/serial.o $(OBJ)/lightbar_functions.o $(OBJ)/i2c_functions.o $(OBJ)/led_functions.o $(OBJ)/button_functions.o
+	$(CC) $(CFLAGS) $(SRC)/bin_client.c $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/AKS_errors.o $(OBJ)/comm.o $(OBJ)/i2c_functions.o $(OBJ)/lightbar_functions.o $(OBJ)/led_functions.o $(OBJ)/button_functions.o -o $(BIN)/bin_client $(MYSQLFLAGS) -lpthread -lm
 
 olp_client: $(OBJ)/comm.o $(OBJ)/scan.o
 	$(CC) $(CFLAGS) $(SRC)/olp_client.c $(OBJ)/scan.o $(OBJ)/comm.o -o $(BIN)/olp_client $(MYSQLFLAGS)

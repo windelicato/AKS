@@ -1,6 +1,8 @@
 //By: Matt Smith
 //I2C Functions
 
+const int i2c_gpio_ic_pin_bytes, i2c_led_ic_pwm_bytes;
+
 //Initializes i2c devices
 int i2c_init();
 

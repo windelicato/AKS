@@ -94,6 +94,9 @@ int bins_init(struct scale_list* l, int num_scales) {
 		l->scale[i].quantity_needed = 0;
 		l->scale[i].percent_full = 1.00;
 		l->scale[i].hand_in_bin = 0;
+		l->scale[i].id  = i;
+		l->scale[i].lightbar  = lightbars[i];
+		l->scale[i].sku  = skus[i];
 
 		l->scale[i].lock_weight = &(l->sem_weight[i]);
 		sem_init(&(l->sem_weight[i]),1,1);
@@ -112,9 +115,6 @@ int scales_init(struct scale_list *s) {
 	for(i=0; i < s->size; i++) {
 		sprintf(device_path,"/dev/ttyUSB%d",scales[i]);
 		s->scale[i].fid = fopen(device_path,"r");
-		s->scale[i].id  = i;
-		s->scale[i].lightbar  = lightbars[i];
-		s->scale[i].sku  = skus[i];
 		if(s->scale[i].fid == 0){
 			//printf("Unable to open device %d\n",i);//ERROR!
 			//break;
@@ -126,34 +126,52 @@ int scales_init(struct scale_list *s) {
 void *picked(void *arg){
 	struct scale *s = (struct scale*) arg; // Which scale is associated with this thread?
 
-	char buff[100];
-
-	int stable = 1;
-	int weight_state = 0;
-	float weight_percent_full = 100.0;
-	float full_weight = 0.0;
+	//Basic scale information
 	float max_weight = 45.0;
 	float min_weight = -1.0;
 	float min_object_weight = 0.02;
-	float object_weight = 0.02;
-	float object_weight_error = 0.0;
-	int observed_object_count = 0;
-	float observed_object_weight = 0.0;
 	float weight_range = max_weight - min_weight;
 
-	float stable_weight = 0.0;
+	//Info on specific objects to be stored in bin
+	int given_object_weight_enabled = 0;
+	float object_weight = 0.02;
+	float object_weight_error = 0.0;
+
+	//Weight buffer variables
 	int weight_buffer_size = 35;
-	int initial_weighing = 3*weight_buffer_size;
 	float weight_buffer[weight_buffer_size];
 	int wb_index = 0;
+	int wb_noldest = 1;
+	int wb_nnewest = weight_buffer_size;
+
+	//Weight state variables
+	int weight_state = 0;
+	int old_weight_state = 0;
+
+	//Object removal/addition detection variables
+	int stable_cycle_count = 0;
+	int observed_object_count = 0;
+	float observed_object_weight = 0.0;
+	float stable_weight = 0.0;
+
+	//Full weight and percentage remaining variables
+	int initial_weighing = 3*weight_buffer_size;
+	float full_weight = 0.0;
+	float weight_percent_full = 100.0;
+	
+	//Updated every cycle variables
 	float weight_change = 0.0;
+	float avg_weight_change = 0.0;
 	float previous_rolling_average = 0.0;
 	float rolling_average = 0.0;
 	float squared_std_dev = 0.0;
 	float std_dev = 0.0;
 
+	//Raw weight reading variables
+	char buff[100];
 	float weight = 0.0;
 
+	//Clear weight buffer to 0
 	memset(weight_buffer,0,weight_buffer_size);
 
 	set_weight_picked(s->lock_weight, s->id, weight_percent_full);
@@ -174,17 +192,32 @@ void *picked(void *arg){
 		if(wb_index>=weight_buffer_size) {
 			wb_index = 0;
 		} 
+
+		wb_noldest++;
+		if(wb_noldest>=weight_buffer_size) {
+			wb_noldest = 0;
+		}
+
+		wb_nnewest++;
+		if(wb_nnewest>=weight_buffer_size) {
+			wb_nnewest = 0;
+		}
 	
 		//Update the rolling average and standard deviation
 		previous_rolling_average = rolling_average;
 
+		//Remove the oldest weight change from the average, the change from the oldest value to the next oldest value
+		avg_weight_change = avg_weight_change - (weight_buffer[wb_noldest] - weight_buffer[wb_index])/weight_buffer_size;
+		//Remove the oldest weight value from the average
 		rolling_average = rolling_average - weight_buffer[wb_index]/weight_buffer_size;
-		//squared_std_dev = squared_std_dev - (weight_buffer[wb_index]*weight_buffer[wb_index])/weight_buffer_size;
 
 		weight_buffer[wb_index] = weight; 
 		
+		//Add the newest weight change to the average, the change from the previous newest value to the newest value
+		avg_weight_change = avg_weight_change + (weight_buffer[wb_index] - weight_buffer[wb_nnewest])/weight_buffer_size;
+		
+		//Add the newest weight value to the average
 		rolling_average = rolling_average + weight_buffer[wb_index]/weight_buffer_size;
-		//squared_std_dev = squared_std_dev + (weight_buffer[wb_index]*weight_buffer[wb_index])/weight_buffer_size;
 	
 		squared_std_dev = 0.0;
 		int i;
@@ -199,12 +232,14 @@ void *picked(void *arg){
 		//TEST
 		//printf("Bin %d standard deviation is %f \n",s->id,std_dev);
 		//printf("	Bin %d avg. weight is %f \n",s->id,rolling_average);
+		//printf("	Bin %d avg. weight change is %f \n",s->id,avg_weight_change);
 
 		//INITIALIZATION
 		if(initial_weighing>0) {
 			initial_weighing--;
 			if(initial_weighing == 0) {
 				full_weight = rolling_average;
+				stable_weight = full_weight;
 				//TEST
 				printf("SHOULD HAPPEN ONCE FOR BIN %d, Full is %f \n",s->id, full_weight);
 			}
@@ -213,16 +248,29 @@ void *picked(void *arg){
 
 		//Check for state change and picks
 		//State change/check
+		weight_state;
 		if(weight_change>min_object_weight) {
 			weight_state = 1;//Increasing
 			weight_change = 0;
+
+			stable_cycle_count = 0;
+			
+			//TEST
 			//printf("Bin %d Weight +++\n",s->id);
+
 		} else if(weight_change<(-min_object_weight)) {
 			weight_state = 2;//Decreasing
 			weight_change = 0;
+
+			stable_cycle_count = 0;
+
+			//TEST
 			//printf("Bin %d Weight ---\n",s->id);
+
 		} else {
 			weight_state = 0;//Stable/No Change
+
+			stable_cycle_count++;
 		}
 
 		weight_percent_full = 100.0*(rolling_average/full_weight);
@@ -234,27 +282,37 @@ void *picked(void *arg){
 
 		//Pick detection/checking
 		object_weight_error = min_object_weight;
-		if((weight_state = 0)&&(stable)) {//The weight must have stabilized
+		if((weight_state == 0)&&(stable_cycle_count==10)) {//The weight must have stabilized
+
+			//TEST
+			//printf("Bin %d detected a previous change in weight\n",s->id);
 
 			//Check to see if at least one object was taken
-			if(1) {
-				if((stable_weight-rolling_average)>(object_weight-object_weight_error)) {
+			if(given_object_weight_enabled) {
+				if((stable_weight-rolling_average)>(object_weight_error)) {
 					//Need to account for multiple items being taken !!!
 					set_weight_picked(s->lock_weight, s->id, weight_percent_full);
 
 					observed_object_count++;
-					observed_object_weight += (observed_object_weight-(stable_weight-rolling_average))/observed_object_count;
+					observed_object_weight += ((stable_weight-rolling_average)-observed_object_weight)/observed_object_count;
+					stable_weight = rolling_average;
+				} else if(rolling_average>stable_weight) {
+					stable_weight = rolling_average;
 				}
 			} else {
-				if((stable_weight-rolling_average)>(observed_object_weight-object_weight_error)) {
+				if((stable_weight-rolling_average)>(object_weight_error)) {
 					
 					observed_object_count++;
-					observed_object_weight += (observed_object_weight - (stable_weight-rolling_average))/observed_object_count;
+					observed_object_weight += ((stable_weight-rolling_average)-observed_object_weight)/observed_object_count;
+					//TEST
+					printf("Observed object weight is %f for Bin %d \n",observed_object_weight,s->id);
+					stable_weight = rolling_average;
+				} else if(rolling_average>stable_weight) {
+					stable_weight = rolling_average;
 				}
 			}
 
 			
-			stable_weight = rolling_average;
 		}
 
 	}

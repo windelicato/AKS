@@ -14,6 +14,8 @@
 #define MAXBUFLEN 100
 #define NUM_BINS 5
 
+char chip0Init[2] = {0xFF,0xFF};
+
 int num_bins = NUM_BINS;
 int num_scales = NUM_BINS;
 
@@ -36,8 +38,17 @@ void init() {
 		aks_critical_error(temp);
 	}
 
+	/*
+	//TEST OF LED DRIVER
+	printf("REACHED I2C CHIP 0 SETUP\n");
+	i2c_setGPIOPins(0,chip0Init);
+	i2c_readGPIOPins(0,chip0Init);
+	printf("PINS ARE %d and %d \n",chip0Init[0], chip0Init[1]);
+	//TEST
+	*/
+	
 	tid = (pthread_t*)malloc(num_scales*(sizeof(pthread_t)));
-	attr = (pthread_t*)malloc(num_scales*(sizeof(pthread_attr_t)));
+	attr = (pthread_attr_t*)malloc(num_scales*(sizeof(pthread_attr_t)));
 
 	int i;
 	for (i = 0; i<num_bins; ++i) {
@@ -66,32 +77,11 @@ void detected_pick(int bin) {
 
 int main(int argc, const char *argv[])
 {
-	/*
-	//Start of Initialization
-	sleep(0.1);
-	
-	bin_init(&s, 5);
-	
-	int num_scales = open_scales(&s);
-	printf("%d\n", num_scales);
-
-	pthread_t tid[num_scales];
-	pthread_attr_t attr[num_scales];
-	
-	int i;
-	for (i = 0; i<num_scales; ++i){
-		pthread_attr_init(&attr[i]);
-		if (pthread_create(&tid[i], &attr[i], picked, &s.scale[i]) != 0){
-			perror("Unable to create thread");
-			exit(-1);
-		}
-	}
-	//End of Initialization
-	*/
 
 	init();
 	
-	/*	
+	/*
+	//TEST OF BASIC NETWORK CONTROLLED PICKING
 	//Start of the Message Receiving Process
 	// RECIEVE PACKET
 	char *message_send = malloc(sizeof(char)*9*MAXBUFLEN);
@@ -133,8 +123,9 @@ int main(int argc, const char *argv[])
 //		}
 		//End of the Message Receiving Process
 		*/	
-
-		//TEST
+		
+		/*
+		//TEST OF LIGHTBAR OPERATION WITHOUT NETWORK
 		s.scale[0].quantity_needed = 1;
 		enableLightBar(s.scale[0].lightbar);
 		s.scale[1].quantity_needed = 0;
@@ -146,7 +137,23 @@ int main(int argc, const char *argv[])
 		s.scale[4].quantity_needed = 1;
 		enableLightBar(s.scale[4].lightbar);
 		//TEST
+		//*/
 		
+		/*
+		//TEST OF LED DRIVER
+		int button_pressed;
+
+		button_pressed = i2c_readGPIOPin(0,1);
+
+		if(button_pressed) {
+			
+			i2c_setLEDDriverPin(0,0,0);
+			i2c_setLEDDriverPin(0,1,0);
+		} else {
+			i2c_setLEDDriverPin(0,0,255);
+			i2c_setLEDDriverPin(0,1,255);	
+		}
+		*/
 
 		//Start of the Picking Process
 		while(1){
@@ -184,7 +191,7 @@ int main(int argc, const char *argv[])
 
 			if(done_picking){
 				printf("here\n");
-				//break;
+				break;
 			}
 		}
 		//End of the Picking Process
@@ -192,6 +199,7 @@ int main(int argc, const char *argv[])
 		printf("Done Picking!!!");
 		
 		/*
+		//TEST OF BASIC NETWORK CONTROLLED PICKING
 		//Start of the Message Reply Process
 		message_send = message_recv;
 		send_msg(argv[1], message_send);

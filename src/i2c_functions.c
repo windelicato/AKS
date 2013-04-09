@@ -14,6 +14,8 @@
 #include "i2c_functions.h"
 #include "AKS_errors.h"
 
+#define DEBUG
+
 //GPIO IC Important Values
 #define DEFAULT_NUM_GPIO_IC 2
 #define DEFAULT_GPIO_SLAVE_ADDRESSES {0x24,0x25}
@@ -21,7 +23,7 @@
 
 //LED IC Important Values
 #define DEFAULT_NUM_LED_DRIVER_IC 1
-#define DEFAULT_LED_DRIVER_SLAVE_ADDRESSES {0xC0}
+#define DEFAULT_LED_DRIVER_SLAVE_ADDRESSES {0x60}
 #define LED_DRIVER_LED_PWM_BYTES 16
 #define LED_DRIVER_IREFALL_REG 0x43
 //The first of 16
@@ -32,11 +34,14 @@
 //Initializes the 4 LEDOUT registers with the proper (b10101010) bits to enable individual control of LEDs
 #define LED_DRIVER_LEDOUT_INIT_BYTES {0x82,0xAA,0xAA,0xAA,0xAA}
 //Initializes the IREFALL register with a value for controlling the current of the LEDs
-#define LED_DRIVER_IREFALL_INIT_BYTES {0x43,0xFF}
+#define LED_DRIVER_IREFALL_INIT_BYTES {0x43,0x4F}
 
 
 
 #define I2C_COMMUNICATION_FAILURE_MAX 10
+
+const int gpio_ic_pin_bytes = GPIO_PIN_BYTES;
+const int led_ic_pwm_bytes = LED_DRIVER_LED_PWM_BYTES;
 
 int i2c_bus;
 
@@ -53,10 +58,25 @@ int i2c_comm_fails;
 //Whether or not there was a large number of i2c communication errors
 int i2c_state_of_failure;
 
+void failure() {
+	i2c_comm_fails++;
+	if(i2c_comm_fails>=I2C_COMMUNICATION_FAILURE_MAX) {
+		aks_error(-304);
+		i2c_state_of_failure = 1;
+		i2c_comm_fails = 0;
+	}
+}
+
 //Sets up the GPIO expander ICs with the default settings
 int setup_i2c_GPIO() {
 	
 	int i;
+
+	#ifdef DEBUG
+	//TEST
+	printf("Running setup_i2c_GPIO() and allocating arrays for GPIO pins...\n");
+	//TEST
+	#endif
 
 	i2c_GPIOPins = (char**)malloc(DEFAULT_NUM_GPIO_IC*sizeof(char*));
 
@@ -75,6 +95,12 @@ int setup_i2c_LED_Drivers() {
 	char ledout_init[] = LED_DRIVER_LEDOUT_INIT_BYTES;
 	char irefall_init[] = LED_DRIVER_IREFALL_INIT_BYTES;
 	
+	#ifdef DEBUG
+	//TEST
+	printf("Running setup_i2c_LED_Drivers()...\n");
+	//TEST
+	#endif
+
 	//For each LED Driver IC, initialize its registers
 	for(i = 0; i<DEFAULT_NUM_LED_DRIVER_IC; i++) {
 		if((err = i2c_select_LED_Driver_IC(i))<0) {
@@ -83,16 +109,26 @@ int setup_i2c_LED_Drivers() {
 		if(write(i2c_bus,ledout_init,sizeof(ledout_init))!=sizeof(ledout_init)) {
 			aks_error(-303);
 			failure();
+			#ifdef DEBUG
+			printf("Failed to write to LED Driver LEDOUT register\n");
+			#endif
 			return -303;
 		}
-		if(write(i2c_bus,irefall_init,sizeof(irefall_init))!=sizeof(ledout_init)) {
+		if(write(i2c_bus,irefall_init,sizeof(irefall_init))!=sizeof(irefall_init)) {
 			aks_error(-303);
 			failure();
+			#ifdef DEBUG
+			printf("Failed to write to LED Driver IREFALL register\n");
+			#endif
 			return -303;
 		}
 	}
 
-	i2c_LEDs = (char**)malloc(DEFAULT_NUM_LED_DRIVER_IC);
+	i2c_LEDs = (char**)malloc(DEFAULT_NUM_LED_DRIVER_IC*sizeof(char*));
+
+	#ifdef DEBUG
+	printf("Allocating arrays for LED Driver PWM values...\n");
+	#endif
 
 	for(i = 0; i<DEFAULT_NUM_LED_DRIVER_IC; i++) {
 		
@@ -106,24 +142,20 @@ int setup_i2c_LED_Drivers() {
 }
 
 int i2c_init() {
+	int err;
 	if((i2c_bus = open("/dev/i2c-1",O_RDWR))<0) {
 		aks_error(-300);
 		return -300;//Error opening i2c bus
 	}
-	setup_i2c_GPIO();
-	setup_i2c_LED_Drivers();
+	if((err = setup_i2c_GPIO())<0) {
+		return err;
+	}
+	if((err = setup_i2c_LED_Drivers())<0) {
+		return err;
+	}
 	i2c_comm_fails = 0;
 	i2c_state_of_failure = 0;
 	return 0;
-}
-
-void failure() {
-	i2c_comm_fails++;
-	if(i2c_comm_fails>=I2C_COMMUNICATION_FAILURE_MAX) {
-		aks_error(-304);
-		i2c_state_of_failure = 1;//Other functions/threads will reset this variable at their descretion
-		i2c_comm_fails = 0;
-	}
 }
 
 int set_i2c_slave_address(char slave_addr) {
