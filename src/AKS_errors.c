@@ -1,9 +1,9 @@
 //By: Matt Smith
 
+#include <stdio.h>
 #include "AKS_errors.h"
 #include "comm.h"
 #include "configuration.h"
-#include <stdio.h>
 
 #define ERROR_LOG_MAX_BYTES 1000000
 #define ERROR_LOG_PATH "Not setup yet"

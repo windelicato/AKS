@@ -3,6 +3,7 @@
 
 #include "serial.h"
 
+
 extern const char* log_file_path;
 extern const char* config_file_path;
 
@@ -19,6 +20,7 @@ int log_message(const char* path, char* message);
 
 // Rotate logs... could be done with a cron job?
 int rotate_logs();
+
 
 #else
 const char* log_file_path = "/root/AKS/log/log.txt";

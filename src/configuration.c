@@ -1,3 +1,4 @@
+#define _CONFIGURATION_H_
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>

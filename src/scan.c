@@ -37,20 +37,31 @@ char * get_pick_packet() {
 }
 
 char * get_scan(char* path) {
+	char * scan = malloc(sizeof(char)*MAXBUFLEN);
+
+	// Read in new scan
 	FILE* file = fopen(path,"r");
 	if (file == NULL){
 		return NULL;
 	}
+	unsigned int size;
 
-	char * scan = malloc(sizeof(char)*MAXBUFLEN);
-	int c,n =0;
+	do{
+		fseek(file, 0L, SEEK_END);
+		size = ftell(file);
+		fseek(file, 0L, SEEK_SET);
+	} while (size ==0);
+	printf("%d\n", size);
 
-	while ((c = fgetc(file)) != '\n'){
-		scan[n++] = (char) c;
+	if(fread(scan, 1, size, file) != size ){
+		printf("Could not read scan file");
 	}
-	scan[n] = '\0';
-	//printf("scan: %s", scan);
 
+	file = fopen(path,"w");
+	if (file == NULL){
+		printf("Could not read scan file");
+		return NULL;
+	}
 	fclose(file);
 
 	return scan;

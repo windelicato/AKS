@@ -20,17 +20,20 @@ int main(int argc, const char *argv[])
 
 	network_init(&n, MAXBUFLEN);	
 
+
 	while (1) {
-/*
+
 		memset(message_send, '\0', 9*MAXBUFLEN);
 		memset(message_recv, '\0', 9*MAXBUFLEN);
 		memset(collat , '\0', 9*MAXBUFLEN);
 
+
 		char *scan;
 		do {
+			printf("HERE again\n");
 			scan = get_scan("/home/aks/scan.txt");
-			sleep(1);
-		} while(strcmp(order,scan) == 0);
+			printf("SCAN: %s\n",scan);
+		} while(scan[0] != '\0');
 		strcpy(order, scan);
 
 		printf("Requesting parts from STB# %s\n\n",scan);
@@ -58,6 +61,7 @@ int main(int argc, const char *argv[])
 		}
 
 		printf("\n\n");
+/*
 */
 	}
 

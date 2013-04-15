@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include "comm.h"
 #include "scan.h"
+#include "AKS_errors.h"
 #include "configuration.h"
 
 #define SERVERPORT "4950"
