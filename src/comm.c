@@ -180,6 +180,7 @@ int get_msg(const char* ip, char* buf)
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	int numbytes;
+	int port = atoi(SERVERPORT);
 	struct sockaddr_storage their_addr;
 	//char buf[MAXBUFLEN];
 	socklen_t addr_len; char s[INET6_ADDRSTRLEN];
@@ -239,6 +240,7 @@ int send_msg(const char *ip, char *message)
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
+	int port = atoi(SERVERPORT);
 	int numbytes;
 
 	memset(&hints, 0, sizeof hints);
@@ -274,8 +276,11 @@ int send_msg(const char *ip, char *message)
 
 	freeaddrinfo(servinfo);
 
-	//printf("talker: sent %d bytes to %s\n", numbytes, ip);
+	printf("talker: sent %d bytes to %s\n", numbytes, ip);
 	close(sockfd);
 
 	return 0;
+}
+
+olp_send_recv(const char* host, int port, char* message) {
 }

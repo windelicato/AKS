@@ -38,9 +38,18 @@ char * get_pick_packet() {
 
 char * get_scan(char* path) {
 	char * scan = malloc(sizeof(char)*MAXBUFLEN);
+	FILE* file;
+
+	// Clear file
+	file = fopen(path,"w");
+	if (file == NULL){
+		printf("Could not read scan file");
+		return NULL;
+	}
+	fclose(file);
 
 	// Read in new scan
-	FILE* file = fopen(path,"r");
+	file = fopen(path,"r");
 	if (file == NULL){
 		return NULL;
 	}
@@ -51,12 +60,15 @@ char * get_scan(char* path) {
 		size = ftell(file);
 		fseek(file, 0L, SEEK_SET);
 	} while (size ==0);
-	printf("%d\n", size);
 
 	if(fread(scan, 1, size, file) != size ){
 		printf("Could not read scan file");
 	}
+	fclose(file);
+	
+	scan[size-2] = '\0';
 
+	// Clear file
 	file = fopen(path,"w");
 	if (file == NULL){
 		printf("Could not read scan file");
