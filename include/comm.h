@@ -13,8 +13,8 @@ struct network_data{
 	int size;
 };
 
-void set_mesg_send(struct network_data *data, char* buff);
-void get_mesg_send(struct network_data *data, char* buff);
+void set_msg_send(struct network_data *data, char* buff);
+void get_msg_recv(struct network_data *data, char* buff);
 int network_init(struct network_data *data, int size);
 void *server_daemon(void *arg);
 
@@ -24,6 +24,6 @@ void *get_in_addr(struct sockaddr *sa);
 
 int get_msg(const char* ip, char* buf);
 
-int send_mesg(const char* ip, char* message);
+int send_msg(const char* ip, char* message);
 
 #endif

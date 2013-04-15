@@ -10,22 +10,24 @@
 #include <netdb.h>
 #include "comm.h"
 #include "scan.h"
+#include "configuration.h"
 
 #define SERVERPORT "4950"
 #define MAXBUFLEN 512
 #define QUEUELEN 5
 
 // Copies string in buffer buff into next sent network packet
-void set_mesg_send(struct network_data *data, char* buff){
+void set_msg_send(struct network_data *data, char* buff){
 	sem_wait(&data->lock_send);
 	strcpy(data->msg_send, buff);
 	sem_post(&data->lock_send);
 }
 
 // Copies string in recieved network packet to buffer buff
-void get_mesg_recv(struct network_data *data, char* buff){
+void get_msg_recv(struct network_data *data, char* buff){
 	sem_wait(&data->lock_recv);
 	strcpy(buff,data->msg_recv);
+	memset(data->msg_recv,'\0',sizeof(char)*data->size);
 	sem_post(&data->lock_recv);
 }
 
@@ -50,14 +52,19 @@ int network_init(struct network_data *data, int size){
 }
 
 char* handle_message(char *msg) {
+	char* buff = malloc(sizeof(char)*MAXBUFLEN);
 	switch(msg[0]){
-		case '1':
-			return get_pick_packet();
+		case '1':	 // Let the main thread handle this message
+			return "\0"; 
+		case '2':	// Return the current configuration
+			write_configuration_str(config_file_path, msg+2);
+			return "2 Success";
+		case '3':	// Return the current configuration
+			read_configuration_str(config_file_path, buff);
+			return buff;
 		default:
 			printf("Message type %c undefined\n",msg[0]);
 			return "Message undefined";
-			
-
 	}
 }
 
@@ -66,7 +73,8 @@ void *server_daemon(void* arg) {
 	struct network_data *data = (struct network_data*) arg;
 	struct sockaddr_in sad;  // structure to hold server's address  
 	struct sockaddr_in cad;  // structure to hold client's address  
-	int sd, sd2;               // socket descriptors                        
+	int sd = 0; 
+	int sd2 = 0;               // socket descriptors                        
 	int port = atoi(SERVERPORT);                            // protocol port number            
 	socklen_t alen;          // length of address                   
 	unsigned int in_index;   // index to incoming message buffer
@@ -114,33 +122,44 @@ void *server_daemon(void* arg) {
 	while (1) {
 		alen = sizeof(cad);
 
-		if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
-			perror("ECHOD: accept failed\n");
-			exit(-1);
-		}
+		if( sd2 == 0) {
+			if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
+				perror("ECHOD: accept failed\n");
+				exit(-1);
+			}
 
-		// receive the string sent by client
-		if (recv(sd2, &buff, data->size, 0) < 0) {
-			perror("Could not recvfrom: ");
-			exit(-1);
+			// receive the string sent by client
+			if (recv(sd2, &buff, data->size, 0) < 0) {
+				perror("Could not recvfrom: ");
+				exit(-1);
+			}
+			buff[data->size] = '\0';
+			printf("String recieved : %s\n", buff);
+			sem_wait(&data->lock_recv);
+			strcpy(data->msg_recv, buff);
+			sem_post(&data->lock_recv);
+
+			set_msg_send(data, handle_message(buff));
+
+			memset(&buff, '\0', data->size);
+		} else {
+			// HANDLE BUFF
+			sem_wait(&data->lock_send);
+			if(data->msg_send[0] != '\0') {
+				// send the received string back to client
+				if(send(sd2, data->msg_send, data->size, 0) < 0) {
+					perror("Could not send: ");
+					exit(-1);
+				}
+				memset(data->msg_send,'\0',sizeof(char)*data->size);
+				close(sd2);
+				sd2=0;
+			}
+			sem_post(&data->lock_send);
 		}
-		buff[data->size] = '\0';
-		//strcpy(data->msg_send, data->msg_recv);
 		
-		// HANDLE BUFF
-		char* packet = handle_message(buff);
-		printf("Sending packet: %s\n", packet);
-		set_mesg_send(data, packet);
 
-		// send the received string back to client
-		if(send(sd2, data->msg_send, data->size, 0) < 0) {
-			perror("Could not send: ");
-			exit(-1);
-		}
 
-		memset(&buff, '\0', data->size);
-
-		close(sd2);
 	}
 }
 

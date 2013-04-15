@@ -10,9 +10,14 @@
 #include "lightbar_functions.h"
 #include "i2c_functions.h"
 #include "AKS_errors.h"
+#include "configuration.h"
 
 #define MAXBUFLEN 100
 #define NUM_BINS 5
+
+char *log_file = "/root/AKS/log/log.txt";
+//extern const char* log_file_path;
+//extern const char* config_file_path;
 
 char chip0Init[2] = {0xFF,0xFF};
 
@@ -20,11 +25,13 @@ int num_bins = NUM_BINS;
 int num_scales = NUM_BINS;
 
 struct scale_list s;
+struct network_data *data;
 pthread_t* tid;
 pthread_attr_t* attr;
 
 //Initialize AKS for operation
 void init() {
+	log_message(log_file_path,"AKS System Startup");
 	sleep(1);
 	//Initialize the different AKS systems
 	int temp;
@@ -55,9 +62,13 @@ void init() {
 		pthread_attr_init(&attr[i]);
 		if (pthread_create(&tid[i], &attr[i], picked, &s.scale[i]) != 0) {
 			perror("Unable to create thread");//ERROR!
-			exit(-1);
+			log_message(log_file_path, "Could not create bin thread");
 		}
 	}
+
+	// Initialize networking thread
+	data = malloc(sizeof(struct network_data));
+	network_init(data, 512);
 }
 
 void print_pick_info(int bin) {
@@ -80,18 +91,23 @@ int main(int argc, const char *argv[])
 
 	init();
 	
-	/*
+	
 	//TEST OF BASIC NETWORK CONTROLLED PICKING
 	//Start of the Message Receiving Process
 	// RECIEVE PACKET
 	char *message_send = malloc(sizeof(char)*9*MAXBUFLEN);
 	char *message_recv = malloc(sizeof(char)*9*MAXBUFLEN);
-	*/
-	while (1) {/*
+
+	while (1) {
+		
 		memset(message_send, '\0', 9*MAXBUFLEN);
 		memset(message_recv, '\0', 9*MAXBUFLEN);
 
-		get_msg(argv[1], message_recv);
+	//	get_msg(argv[1], message_recv);
+		while(message_recv[0] == '\0') {
+			get_msg_recv(data, message_recv);
+		}
+		strcpy(message_send, message_recv);
 
 		char tokens[10][12];
 		char *next_str;
@@ -122,22 +138,21 @@ int main(int argc, const char *argv[])
 //			printf("TOKEN %d: %s\n", i, tokens[i]);
 //		}
 		//End of the Message Receiving Process
-		*/	
+			
 		
-		/*
+		
 		//TEST OF LIGHTBAR OPERATION WITHOUT NETWORK
-		s.scale[0].quantity_needed = 1;
-		enableLightBar(s.scale[0].lightbar);
-		s.scale[1].quantity_needed = 0;
-		disableLightBar(s.scale[1].lightbar);
-		s.scale[2].quantity_needed = 1;
-		enableLightBar(s.scale[2].lightbar);
-		s.scale[3].quantity_needed = 0;
-		disableLightBar(s.scale[3].lightbar);	
-		s.scale[4].quantity_needed = 1;
-		enableLightBar(s.scale[4].lightbar);
+//		s.scale[0].quantity_needed = 1;
+//		enableLightBar(s.scale[0].lightbar);
+//		s.scale[1].quantity_needed = 0;
+//		disableLightBar(s.scale[1].lightbar);
+//		s.scale[2].quantity_needed = 1;
+//		enableLightBar(s.scale[2].lightbar);
+//		s.scale[3].quantity_needed = 0;
+//		disableLightBar(s.scale[3].lightbar);	
+//		s.scale[4].quantity_needed = 1;
+//		enableLightBar(s.scale[4].lightbar);
 		//TEST
-		//*/
 		
 		/*
 		//TEST OF LED DRIVER
@@ -198,13 +213,10 @@ int main(int argc, const char *argv[])
 
 		printf("Done Picking!!!");
 		
-		/*
 		//TEST OF BASIC NETWORK CONTROLLED PICKING
 		//Start of the Message Reply Process
-		message_send = message_recv;
-		send_msg(argv[1], message_send);
+		set_msg_send(data, message_send);
 		//End of the Message Reply Process
-		*/
 	}
 
 

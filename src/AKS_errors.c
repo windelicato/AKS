@@ -2,6 +2,7 @@
 
 #include "AKS_errors.h"
 #include "comm.h"
+#include "configuration.h"
 #include <stdio.h>
 
 #define ERROR_LOG_MAX_BYTES 1000000
@@ -35,15 +36,23 @@ void aks_error(int error_num) {
 	if(error_num>-100) {
 	//RPi Errors
 	puts((rpi_error_messages[(-error_num)%100]));	
+	log_message(log_file_path, rpi_error_messages[(-error_num)%100]);
 	} else if(error_num>-200) {
 	//Network Errors
 	puts((network_error_messages[(-error_num)%100]));
+	log_message(log_file_path, network_error_messages[(-error_num)%100]);
 	} else if(error_num>-300) {
 	//USB Errors
 	puts((usb_error_messages[(-error_num)%100]));
+	log_message(log_file_path, usb_error_messages[(-error_num)%100]);
 	} else if(error_num>-400) {
 	//I2C Errors
 	puts((i2c_error_messages[(-error_num)%100]));
+	log_message(log_file_path, i2c_error_messages[(-error_num)%100]);
+	} else {
+	//Other Errors
+	puts((other_error_messages[(-error_num)%100]));
+	log_message(log_file_path, i2c_error_messages[(-error_num)%100]);
 	}
 
 	//TEST

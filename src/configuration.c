@@ -4,11 +4,42 @@
 #include<time.h>
 
 #include"serial.h"
+#include"configuration.h"
 
 char* format = "BIN:%d Lightbar:%d SKU:%d Weight:%lf\n";
 
+int read_configuration_str(const char* path, char* buffer) {
+	FILE* config = fopen(path, "r");
+
+	fseek(config, 0L, SEEK_END);
+	unsigned int size = ftell(config);
+	fseek(config, 0L, SEEK_SET);
+
+	if (fread(buffer, 1, size, config) != size) {
+		printf("Could not read configuration file");
+		log_message(log_file_path, "read_configuration(path,buffer) failed");
+		fclose(config);
+		return -1;
+	}
+
+	fclose(config);
+	return 0;
+}
+
+int write_configuration_str(const char* path, char* buffer) {
+	FILE* config = fopen(path, "w+");
+	if(fwrite(buffer, 1, strlen(buffer), config) != strlen(buffer) ){
+		printf("Could not write configuration file");
+		log_message(log_file_path, "write_configuration_str(path,buffer) failed");
+		fclose(config);
+		return -1;
+	}
+	fclose(config);
+	return 0;
+}
+
 // Writes bin configuration to file specified by path
-int write_configuration(char* path, struct scale_list* l) {
+int write_configuration(const char* path, struct scale_list* l) {
 	FILE* config = fopen(path, "w+");
 	int id, lightbar, sku;
 	double weight;
@@ -22,7 +53,7 @@ int write_configuration(char* path, struct scale_list* l) {
 }
 
 // Loads bin configuration to file specified by path
-int read_configuration(char* path, struct scale_list* l) {
+int read_configuration(const char* path, struct scale_list* l) {
 
 	FILE* config = fopen(path, "r");
 	int id, lightbar, sku;
@@ -32,7 +63,7 @@ int read_configuration(char* path, struct scale_list* l) {
 	int line_number = 0;
 	while((num_read = fscanf(config, format, &id, &lightbar, &sku, &weight)) != EOF){
 		if ( num_read != 4 ) {
-			printf("Cnvalid configuration syntax at line %d\n", line_number);
+			printf("Invalid configuration syntax at line %d\n", line_number);
 			return -1;
 		}
 		l->scale[line_number].id = id;
@@ -48,7 +79,7 @@ int read_configuration(char* path, struct scale_list* l) {
 
 
 // Logs message to logfile specified by path
-int log_message(char* path, char* message) {
+int log_message(const char* path, char* message) {
 	// Create timestamp
 	time_t t;
 	t = time(NULL);

@@ -7,6 +7,7 @@
 #include "lightbar_functions.h"
 #include "i2c_functions.h"
 #include "serial.h"
+#include "AKS_errors.h"
 
 #define WEIGHTS 	5
 #define AVGS 		30
@@ -91,6 +92,7 @@ int bins_init(struct scale_list* l, int num_scales) {
 	int i;
 	for(i=0; i < num_scales; i++) {
 		
+		
 		l->scale[i].quantity_needed = 0;
 		l->scale[i].percent_full = 1.00;
 		l->scale[i].hand_in_bin = 0;
@@ -106,6 +108,8 @@ int bins_init(struct scale_list* l, int num_scales) {
 		disableLightBar(i);
 	}
 
+	read_configuration("/root/AKS/config.txt", l);
+
 	return 1;
 }
 
@@ -115,7 +119,7 @@ int scales_init(struct scale_list *s) {
 	for(i=0; i < s->size; i++) {
 		sprintf(device_path,"/dev/ttyUSB%d",scales[i]);
 		s->scale[i].fid = fopen(device_path,"r");
-		if(s->scale[i].fid == 0){
+		if(s->scale[i].fid == 1){
 			//printf("Unable to open device %d\n",i);//ERROR!
 			//break;
 			return -200;
