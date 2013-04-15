@@ -282,5 +282,79 @@ int send_msg(const char *ip, char *message)
 	return 0;
 }
 
-olp_send_recv(const char* host, int port, char* message) {
+char * olp_send_recv(const char* host, int port, char* message) {
+	struct	hostent	 *ptrh;	 // pointer to a host table entry	
+	struct	sockaddr_in sad; // structure to hold an IP address	
+
+	int	sd;		                 // socket descriptor			
+	int	port;		               // protocol port number		
+	char *host;                // pointer to host name		
+	char  in_msg[BUFFER_SIZE]; // buffer for incoming message
+
+	unsigned int in_index;     // index to incoming message buffer
+	int bytes_read;
+	int no_zero;
+	int ret_val;
+
+	memset((char *)&sad,0,sizeof(sad)); // zero out sockaddr structure	
+	sad.sin_family = AF_INET;	          // set family to Internet	
+
+	// verify usage
+
+
+	if (port > 0)	
+		// test for legal value		
+		sad.sin_port = htons((u_short)port);
+	else {				
+		// print error message and exit	
+		printf("ECHOREQ: bad port number %s\n", argv[2]);
+		exit(-1);
+	}
+
+	// convert host name to equivalent IP address and copy to sad 
+
+	ptrh = gethostbyname(host);
+
+	if ( ((char *)ptrh) == NULL ) {
+		printf("ECHOREQ: invalid host: %s\n", host);
+		exit(-1);
+	}
+
+	memcpy(&sad.sin_addr, ptrh->h_addr, ptrh->h_length);
+
+	// create socket 
+
+	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sd < 0) {
+		printf("ECHOREQ: socket creation failed\n");
+		exit(-1);
+	}
+
+	// connect the socket to the specified server 
+
+	if (connect(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
+		perror("ECHOREQ: connect failed");
+		exit(-1);
+	}
+
+	// send message to server
+	if (send(sd, argv[3], strlen(argv[3]), 0) < 0) {
+		perror("Failed to send message to server: ");
+		exit(-1);
+	}
+
+	// receive message echoed back by server
+	if (recv(sd, &in_msg, BUFFER_SIZE, 0) < 0) {
+		perror("Failed to send message to server: ");
+		exit(-1);
+	}
+	in_msg[BUFFER_SIZE] = '\0';
+
+	printf("ECHOREQ: from server= %s\n", in_msg);
+
+	// close the socket   
+	close(sd);
+
+	// terminate the client program gracefully 
+	return in_msg;
 }
