@@ -45,8 +45,7 @@ int main(int argc, const char *argv[])
 		printf("packet sent: %s\n",message_send);
 
 //		set_mesg_send(&n, message_send);
-		send_msg(IP, message_send);
-		get_msg(IP, message_recv);
+		message_recv = 	olp_send_recv(IP, 4950, message_send);
 //		get_mesg_recv(&n, message_recv);
 
 		if( message_recv[0] == message_send[0] ){

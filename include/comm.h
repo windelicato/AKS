@@ -26,4 +26,6 @@ int get_msg(const char* ip, char* buf);
 
 int send_msg(const char* ip, char* message);
 
+char *olp_send_recv(const char* host, int port, char* message);
+
 #endif

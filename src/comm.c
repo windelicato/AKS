@@ -180,7 +180,6 @@ int get_msg(const char* ip, char* buf)
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	int numbytes;
-	int port = atoi(SERVERPORT);
 	struct sockaddr_storage their_addr;
 	//char buf[MAXBUFLEN];
 	socklen_t addr_len; char s[INET6_ADDRSTRLEN];
@@ -193,8 +192,7 @@ int get_msg(const char* ip, char* buf)
 	if ((rv = getaddrinfo(NULL, SERVERPORT, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
-	}
-
+	} 
 	// loop through all the results and bind to the first we can
 	for(p = servinfo; p != NULL; p = p->ai_next) {
 		if ((sockfd = socket(p->ai_family, p->ai_socktype,
@@ -287,14 +285,9 @@ char * olp_send_recv(const char* host, int port, char* message) {
 	struct	sockaddr_in sad; // structure to hold an IP address	
 
 	int	sd;		                 // socket descriptor			
-	int	port;		               // protocol port number		
-	char *host;                // pointer to host name		
-	char  in_msg[BUFFER_SIZE]; // buffer for incoming message
+	char  in_msg[MAXBUFLEN]; // buffer for incoming message
 
 	unsigned int in_index;     // index to incoming message buffer
-	int bytes_read;
-	int no_zero;
-	int ret_val;
 
 	memset((char *)&sad,0,sizeof(sad)); // zero out sockaddr structure	
 	sad.sin_family = AF_INET;	          // set family to Internet	
@@ -307,7 +300,7 @@ char * olp_send_recv(const char* host, int port, char* message) {
 		sad.sin_port = htons((u_short)port);
 	else {				
 		// print error message and exit	
-		printf("ECHOREQ: bad port number %s\n", argv[2]);
+		printf("ECHOREQ: bad port number %d\n", port);
 		exit(-1);
 	}
 
@@ -338,17 +331,17 @@ char * olp_send_recv(const char* host, int port, char* message) {
 	}
 
 	// send message to server
-	if (send(sd, argv[3], strlen(argv[3]), 0) < 0) {
+	if (send(sd, message, strlen(message), 0) < 0) {
 		perror("Failed to send message to server: ");
 		exit(-1);
 	}
 
 	// receive message echoed back by server
-	if (recv(sd, &in_msg, BUFFER_SIZE, 0) < 0) {
+	if (recv(sd, &in_msg, MAXBUFLEN, 0) < 0) {
 		perror("Failed to send message to server: ");
 		exit(-1);
 	}
-	in_msg[BUFFER_SIZE] = '\0';
+	in_msg[MAXBUFLEN] = '\0';
 
 	printf("ECHOREQ: from server= %s\n", in_msg);
 
@@ -356,5 +349,5 @@ char * olp_send_recv(const char* host, int port, char* message) {
 	close(sd);
 
 	// terminate the client program gracefully 
-	return in_msg;
+	return &in_msg;
 }
