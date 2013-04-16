@@ -6,7 +6,10 @@
 #include "comm.h"
 #include "scan.h"
 
-#define MAXBUFLEN 100
+#define MAXBUFLEN 512
+
+struct network_data n;
+const char* IP = "134.82.135.15";
 
 int main(int argc, const char *argv[])
 {
@@ -16,17 +19,18 @@ int main(int argc, const char *argv[])
 	char *order = malloc(sizeof(char)*MAXBUFLEN);
 	memset(order , '\0', MAXBUFLEN);
 
+//	network_init(&n, MAXBUFLEN);	
+
 
 	while (1) {
+
 		memset(message_send, '\0', 9*MAXBUFLEN);
 		memset(message_recv, '\0', 9*MAXBUFLEN);
 		memset(collat , '\0', 9*MAXBUFLEN);
 
-		char *scan;
-		do {
-			scan = get_scan("/home/aks/scan.txt");
-			sleep(1);
-		} while(strcmp(order,scan) == 0);
+
+		
+		char*	scan = get_scan("/home/aks/scan.txt");
 		strcpy(order, scan);
 
 		printf("Requesting parts from STB# %s\n\n",scan);
@@ -40,18 +44,19 @@ int main(int argc, const char *argv[])
 
 		printf("packet sent: %s\n",message_send);
 
-		send_msg(argv[1], message_send);
-		get_msg(argv[1], message_recv);
+//		set_mesg_send(&n, message_send);
+		message_recv = 	olp_send_recv(IP, 4950, message_send);
+//		get_mesg_recv(&n, message_recv);
 
 		if( message_recv[0] == message_send[0] ){
-			printf("Correct pick!\n");
-			printf("Picked: %s\n",message_recv);
+			printf("Correctly managed !\n");
 		} else{
-			printf("Incorrect pick!\n");
-			printf("Picked: %s\n",message_recv);
+			printf("ERROR!\n");
 		}
 
 		printf("\n\n");
+/*
+*/
 	}
 
 	return 0;

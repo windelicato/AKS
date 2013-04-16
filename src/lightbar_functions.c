@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 #include "i2c_functions.h"
+#include "AKS_errors.h"
+
 
 #define LIGHT_BAR_ENABLE_IC {0,0,0,0,0}
 #define LIGHT_BAR_ENABLE_PIN {8,9,10,7,6}
@@ -25,12 +27,12 @@ void loadLightBarSetup(int* lb_en_ic, int* lb_en_pin, int* lb_sensor_ic, int* lb
 
 void enableLightBar(int lightbar) {
 	i2c_setGPIOPin(lightbar_en_IC[lightbar],lightbar_en_Pin[lightbar],0);
-	i2c_writePins(lightbar_en_IC[lightbar]);
+	i2c_writeGPIOPins(lightbar_en_IC[lightbar]);
 }
 
 void disableLightBar(int lightbar) {
 	i2c_setGPIOPin(lightbar_en_IC[lightbar],lightbar_en_Pin[lightbar],1);
-	i2c_writePins(lightbar_en_IC[lightbar]);
+	i2c_writeGPIOPins(lightbar_en_IC[lightbar]);
 }
 
 int readLightBar(int lightbar) {

@@ -8,9 +8,182 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "comm.h"
+#include "scan.h"
+#include "AKS_errors.h"
+#include "configuration.h"
 
 #define SERVERPORT "4950"
-#define MAXBUFLEN 100
+#define MAXBUFLEN 512
+#define QUEUELEN 5
+
+extern char * config_file_path;
+
+char client_ip[INET_ADDRSTRLEN];
+
+// Copies string in buffer buff into next sent network packet
+void set_msg_send(struct network_data *data, char* buff){
+	sem_wait(&data->lock_send);
+	strcpy(data->msg_send, buff);
+	sem_post(&data->lock_send);
+}
+
+// Copies string in recieved network packet to buffer buff
+void get_msg_recv(struct network_data *data, char* buff){
+	sem_wait(&data->lock_recv);
+	strcpy(buff,data->msg_recv);
+	memset(data->msg_recv,'\0',sizeof(char)*data->size);
+	sem_post(&data->lock_recv);
+}
+
+int network_init(struct network_data *data, int size){
+	data->size = size;
+	data->msg_recv = malloc(sizeof(char)*size);
+	data->msg_send = malloc(sizeof(char)*size);
+	memset(data->msg_recv,'\0',sizeof(char)*size);
+	memset(data->msg_send,'\0',sizeof(char)*size);
+
+	sem_init(&data->lock_send,1,1);
+	sem_init(&data->lock_recv,1,1);
+
+	pthread_attr_init(&data->thread_attr);
+	if( pthread_create(&data->thread_id, &data->thread_attr, server_daemon, data) < 0) { 
+		perror("Unable to create server daemon thread");
+		exit(-1);
+	}
+
+
+	return 1;
+}
+
+char* handle_message(char *msg) {
+	char* buff = malloc(sizeof(char)*MAXBUFLEN);
+	switch(msg[0]){
+		case '1':	 // Let the main thread handle this message
+			return "\0"; 
+		case '2':	// Return the current configuration
+			write_configuration_str(config_file_path, msg+2);
+			return "2 Success";
+		case '3':	// Return the current configuration
+			read_configuration_str(config_file_path, buff);
+			return buff;
+		default:
+			printf("Message type %c undefined\n",msg[0]);
+			return "Message undefined";
+	}
+}
+
+void *server_daemon(void* arg) {
+
+	struct network_data *data = (struct network_data*) arg;
+	struct sockaddr_in sad;  // structure to hold server's address  
+	struct sockaddr_in cad;  // structure to hold client's address  
+	int sd = 0; 
+	int sd2 = 0;               // socket descriptors                        
+	int port = atoi(SERVERPORT);                            // protocol port number            
+	socklen_t alen;          // length of address                   
+	unsigned int in_index;   // index to incoming message buffer
+	char buff[data->size];
+
+	// prepare address data structure
+
+	memset((char *)&sad,0,sizeof(sad)); // zero out sockaddr structure      
+	sad.sin_family = AF_INET;                 // set family to Internet             
+	sad.sin_addr.s_addr = INADDR_ANY;   // set the local IP address 
+
+	if (port > 0)
+		// test for illegal value       
+		sad.sin_port = htons((u_short)port);
+	else {
+		// print error message and exit 
+		fprintf(stderr,"ECHOD: bad port number %s\n", port);
+		exit(-1);
+	}
+
+	// create socket 
+
+	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sd < 0) {
+		perror("ECHOD: socket creation failed");
+		exit(-1);
+	}
+
+	// assign IP/port number to socket where connections come in 
+
+	if (bind(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
+		perror("ECHOD: bind failed");
+		exit(-1);
+	}
+
+	// set up socket to receive incomming connections 
+
+	if (listen(sd, QUEUELEN) < 0) {
+		perror("ECHOD: listen failed");
+		exit(-1);
+	}
+
+	// main server loop - accept and handle requests 
+	
+	pthread_t tid;
+	pthread_attr_t tattr;
+
+	pthread_attr_init(&tattr);
+	if(pthread_create(&tid, &tattr, sender, &data) != 0) {
+		perror("Unable to create sender thread");
+	}
+
+	printf("CREATED SENDER THREAD\n");
+
+	while (1) {
+		alen = sizeof(cad);
+
+		printf("CHECKING FOR PACKET\n");
+		if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
+			perror("ECHOD: accept failed\n");
+			exit(-1);
+		}
+		printf("HERE at accept\n");
+
+		inet_ntop(AF_INET, &(cad.sin_addr), client_ip, INET_ADDRSTRLEN);
+
+		printf("Client IP: %s\n", client_ip);
+
+		// receive the string sent by client
+		if (recv(sd2, &buff, data->size, 0) < 0) {
+			perror("Could not recvfrom: ");
+			exit(-1);
+		}
+		buff[data->size] = '\0';
+		printf("String recieved : %s\n", buff);
+		sem_wait(&data->lock_recv);
+		strcpy(data->msg_recv, buff);
+		printf("Copied packet into msg_recv\n");
+		sem_post(&data->lock_recv);
+
+		set_msg_send(data, handle_message(buff));
+		memset(&buff, '\0', data->size);
+		close(sd2);
+	}
+}
+
+void *sender(void *arg) {
+	struct network_data *data = (struct network_data*) arg;
+
+	printf("Initialized SENDER thread\n");
+	while(1) {
+//		sem_wait(&data->lock_send);
+//		printf("\tCHECKING FOR SEND MESSAGE\n");
+//		if(data->msg_send[0] != '\0') {
+//			printf("SENDING MESSAGE\n");
+//			// send the received string back to client
+//			olp_send_recv(client_ip, atoi(SERVERPORT), data->msg_send); 
+//			memset(data->msg_send,'\0',sizeof(char)*data->size);
+//		}
+//		sem_post(&data->lock_send);
+	}
+}
+
+
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -39,8 +212,7 @@ int get_msg(const char* ip, char* buf)
 	if ((rv = getaddrinfo(NULL, SERVERPORT, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
-	}
-
+	} 
 	// loop through all the results and bind to the first we can
 	for(p = servinfo; p != NULL; p = p->ai_next) {
 		if ((sockfd = socket(p->ai_family, p->ai_socktype,
@@ -86,6 +258,7 @@ int send_msg(const char *ip, char *message)
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
+	int port = atoi(SERVERPORT);
 	int numbytes;
 
 	memset(&hints, 0, sizeof hints);
@@ -121,8 +294,80 @@ int send_msg(const char *ip, char *message)
 
 	freeaddrinfo(servinfo);
 
-	//printf("talker: sent %d bytes to %s\n", numbytes, ip);
+	printf("talker: sent %d bytes to %s\n", numbytes, ip);
 	close(sockfd);
 
 	return 0;
+}
+
+char * olp_send_recv(const char* host, int port, char* message) {
+	struct	hostent	 *ptrh;	 // pointer to a host table entry	
+	struct	sockaddr_in sad; // structure to hold an IP address	
+
+	int	sd;		                 // socket descriptor			
+	char  in_msg[MAXBUFLEN]; // buffer for incoming message
+
+	unsigned int in_index;     // index to incoming message buffer
+
+	memset((char *)&sad,0,sizeof(sad)); // zero out sockaddr structure	
+	sad.sin_family = AF_INET;	          // set family to Internet	
+
+	// verify usage
+
+
+	if (port > 0)	
+		// test for legal value		
+		sad.sin_port = htons((u_short)port);
+	else {				
+		// print error message and exit	
+		printf("ECHOREQ: bad port number %d\n", port);
+		exit(-1);
+	}
+
+	// convert host name to equivalent IP address and copy to sad 
+
+	ptrh = gethostbyname(host);
+
+	if ( ((char *)ptrh) == NULL ) {
+		printf("ECHOREQ: invalid host: %s\n", host);
+		exit(-1);
+	}
+
+	memcpy(&sad.sin_addr, ptrh->h_addr, ptrh->h_length);
+
+	// create socket 
+
+	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sd < 0) {
+		printf("ECHOREQ: socket creation failed\n");
+		exit(-1);
+	}
+
+	// connect the socket to the specified server 
+
+	if (connect(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
+		perror("ECHOREQ: connect failed");
+		exit(-1);
+	}
+
+	// send message to server
+	if (send(sd, message, strlen(message), 0) < 0) {
+		perror("Failed to send message to server: ");
+		exit(-1);
+	}
+
+	// receive message echoed back by server
+//	if (recv(sd, &in_msg, MAXBUFLEN, 0) < 0) {
+//		perror("Failed to send message to server: ");
+//		exit(-1);
+//	}
+//	in_msg[MAXBUFLEN] = '\0';
+
+//	printf("ECHOREQ: from server= %s\n", in_msg);
+
+	// close the socket   
+	close(sd);
+
+	// terminate the client program gracefully 
+	return &in_msg;
 }

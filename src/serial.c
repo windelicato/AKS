@@ -7,6 +7,7 @@
 #include "lightbar_functions.h"
 #include "i2c_functions.h"
 #include "serial.h"
+#include "AKS_errors.h"
 
 #define WEIGHTS 	5
 #define AVGS 		30
@@ -29,7 +30,7 @@ int* 	last_picked_lightbar;//Array of ints for each bin, like last_picked
 int*    last_picked;//Array of ints for each bin, bins set value to their bin # when picked
 double* last_percent_full;//Array of percent fulls for each bin
 
-int check_weight_picked(int bin, sem_t* lock){ 
+int check_scale_picked(int bin, sem_t* lock){ 
 	int temp;
 	sem_wait(lock);
 	temp = last_picked[bin];
@@ -47,7 +48,7 @@ int check_lightbar_picked(int bin, sem_t* lock) {
 	return temp;
 }
 
-double check_percent_full(int bin, sem_t* lock){ 
+double check_scale_percent_full(int bin, sem_t* lock){ 
 	int temp;
 	sem_wait(lock);
 	temp = last_percent_full[bin];
@@ -56,9 +57,9 @@ double check_percent_full(int bin, sem_t* lock){
 	return temp;
 }
 
-void set_weight_picked(sem_t* lock, int bin, double perc){
+void set_weight_picked(sem_t* lock, int bin, int state, double perc){
 	sem_wait(lock);
-	last_picked[bin] = bin;
+	last_picked[bin] = state;
 	last_percent_full[bin] = perc;
 	sem_post(lock);
 }
@@ -69,12 +70,10 @@ void set_lightbar_picked(sem_t* lock, int bin, int value) {
 	sem_post(lock);
 }
 
-int scales_init(struct scale_list* l, int num_scales) {
+int bins_init(struct scale_list* l, int num_scales) {
 	
-	setup_i2c_GPIO();
 	l->scale = calloc(num_scales, sizeof(struct scale));
 	l->size = num_scales;
-	//sem_init(&l->sem,1,1);
 
 	last_picked = (int*)(malloc((sizeof(int))*num_scales));
 	last_picked_lightbar = (int*)(malloc((sizeof(int))*num_scales));
@@ -93,134 +92,263 @@ int scales_init(struct scale_list* l, int num_scales) {
 	int i;
 	for(i=0; i < num_scales; i++) {
 		
+		
 		l->scale[i].quantity_needed = 0;
 		l->scale[i].percent_full = 1.00;
 		l->scale[i].hand_in_bin = 0;
+		l->scale[i].id  = i;
+		l->scale[i].lightbar  = lightbars[i];
+		l->scale[i].sku  = skus[i];
 
 		l->scale[i].lock_weight = &(l->sem_weight[i]);
 		sem_init(&(l->sem_weight[i]),1,1);
 		l->scale[i].lock_lightbar = &(l->sem_lightbar[i]);
 		sem_init(&(l->sem_lightbar[i]),1,1);
+
 		disableLightBar(i);
 	}
+
+	read_configuration("/root/AKS/config.txt", l);
 
 	return 1;
 }
 
-int open_scales(struct scale_list *s) {
+int scales_init(struct scale_list *s) {
 	char *device_path = (char*) malloc(sizeof(char)*MAXBUFLEN);
-	int i, num_scales;
+	int i;
 	for(i=0; i < s->size; i++) {
 		sprintf(device_path,"/dev/ttyUSB%d",scales[i]);
 		s->scale[i].fid = fopen(device_path,"r");
-		s->scale[i].id  = i;
-		s->scale[i].lightbar  = lightbars[i];
-		s->scale[i].sku  = skus[i];
-		if(s->scale[i].fid == 0){
-			printf("Unable to open device %d\n",i);
-			break;
+		if(s->scale[i].fid == 1){
+			//printf("Unable to open device %d\n",i);//ERROR!
+			//break;
+			return -200;
 		}
 	}
-	return i;
 }
 
 void *picked(void *arg){
 	struct scale *s = (struct scale*) arg; // Which scale is associated with this thread?
 
-	float avg = 0;
-	float W_MAX = 0;
+	//Basic scale information
+	float max_weight = 45.0;
+	float min_weight = -1.0;
+	float min_object_weight = 0.02;
+	float weight_range = max_weight - min_weight;
+
+	//Info on specific objects to be stored in bin
+	int given_object_weight_enabled = 0;
+	float object_weight = 0.05;
+	float object_weight_error = 0.0;
+
+	//Weight buffer variables
+	int weight_buffer_size = 35;
+	float weight_buffer[weight_buffer_size];
+	int wb_index = 0;
+	int wb_noldest = 1;
+	int wb_nnewest = weight_buffer_size;
+
+	//Weight state variables
+	int weight_state = 0;
+	int old_weight_state = 0;
+
+	//Object removal/addition detection variables
+	int stable_cycle_count = 0;
+	int observed_object_count = 0;
+	float observed_object_weight = 0.0;
+	float stable_weight = 0.0;
+
+	//Full weight and percentage remaining variables
+	int initial_weighing = 3*weight_buffer_size;
+	float full_weight = 0.0;
+	float weight_percent_full = 100.0;
+	
+	//Updated every cycle variables
+	float weight_change = 0.0;
+	float avg_weight_change = 0.0;
+	float previous_rolling_average = 0.0;
+	float rolling_average = 0.0;
+	float squared_std_dev = 0.0;
+	float std_dev = 0.0;
+
+	//Raw weight reading variables
 	char buff[100];
-	float weights[WEIGHTS];
-	float avgs[AVGS];
-	int cb_i = 0;
-	int avg_i = 0;
-	short stable = 1;
-	float prev_weight = 0;
+	float weight = 0.0;
 
+	//Clear weight buffer to 0
+	//memset(weight_buffer,0,weight_buffer_size);
+	int i;
+	for(i = 0; i<weight_buffer_size; i++) {
+		weight_buffer[i] = 0;
+	}
 
-	printf("Reading...\n");
+	set_weight_picked(s->lock_weight, s->id, 0, weight_percent_full);
 
 	while(1) { 			// Main loop
-		float weight;
 		fgets(buff, 100, s->fid); 
 		weight = atof(buff);
+		if((weight == 0.0)||(isnan(weight))) {
+			if(isnan(weight)) {
+				printf("NANSSSSSSSSSSSS\n");
+			}
+			continue;//Bad data
+		}
+		//TEST
+		//printf("TEST, RAW WEIGHT FROM BIN %d IS %f \n",s->id,weight);
 
 		set_lightbar_picked(s->lock_lightbar, s->id, readLightBar(s->lightbar));	
 
+		//Add weight to weight buffer
+		wb_index++;
+		if(wb_index>=weight_buffer_size) {
+			wb_index = 0;
+		} 
 
-		if(weight != 0.0) {	// Read in valid weight
+		wb_noldest++;
+		if(wb_noldest>=weight_buffer_size) {
+			wb_noldest = 0;
+		}
 
-			weights[cb_i] = weight;	 // Add weight to circular buffer
-			if(cb_i==WEIGHTS-1) {
-				cb_i=0;
-			} else {
-				cb_i++;
+		wb_nnewest++;
+		if(wb_nnewest>=weight_buffer_size) {
+			wb_nnewest = 0;
+		}
+	
+		//Update the rolling average and standard deviation
+		previous_rolling_average = rolling_average;
+
+		//Remove the oldest weight change from the average, the change from the oldest value to the next oldest value
+		avg_weight_change = avg_weight_change - (weight_buffer[wb_noldest] - weight_buffer[wb_index])/weight_buffer_size;
+		//Remove the oldest weight value from the average
+		rolling_average = rolling_average - weight_buffer[wb_index]/weight_buffer_size;
+
+		weight_buffer[wb_index] = weight; 
+		
+		//Add the newest weight change to the average, the change from the previous newest value to the newest value
+		avg_weight_change = avg_weight_change + (weight_buffer[wb_index] - weight_buffer[wb_nnewest])/weight_buffer_size;
+		
+		//Add the newest weight value to the average
+		rolling_average = rolling_average + weight_buffer[wb_index]/weight_buffer_size;
+	
+		squared_std_dev = 0.0;
+		int i;
+		for(i = 0;i<weight_buffer_size;i++) {
+			squared_std_dev += ((weight_buffer[i] - rolling_average)*(weight_buffer[i] - rolling_average))/weight_buffer_size;
+		}
+
+		std_dev = sqrtf(squared_std_dev);
+		
+		weight_change += rolling_average - previous_rolling_average;
+
+		//TEST
+		if(isnan(rolling_average)) {
+			printf("NAN!!!!!!!!!!!!!! Bin %d, avg. value %f, new value %f, full weight %f\n", s->id, rolling_average, weight, full_weight);
+		}
+		//printf("Bin %d standard deviation is %f \n",s->id,std_dev);
+		//printf("	Bin %d avg. weight is %f \n",s->id,rolling_average);
+		//printf("	Bin %d avg. weight change is %f \n",s->id,avg_weight_change);
+
+		//INITIALIZATION
+		if(initial_weighing>0) {
+			initial_weighing--;
+			if(initial_weighing == 0) {
+				full_weight = rolling_average;
+				stable_weight = full_weight;
+				//TEST
+				printf("SHOULD HAPPEN ONCE FOR BIN %d, Full is %f \n",s->id, full_weight);
 			}
-			int i;
+			continue;	
+		}
 
+		//Check for state change and picks
+		//State change/check
+		weight_state;
+		if(weight_change>min_object_weight) {
+			weight_state = 1;//Increasing
+			weight_change = 0;
 
-			avg=0; 		// Find the average of all weights in the buffer
-			for(i=0; i < WEIGHTS; i++) {
-				avg += weights[i];
-			}
-			avg = avg/WEIGHTS;
-
-
-			avgs[avg_i] = avg;	// Add this weight to the averages
-
-			for(i = 0; i < AVGS ; i++){  // Wait for the weight to stabalize
-
-				if ( i == 0 ) { 
-					if ( fabs(avgs[AVGS-1] - avgs[i]) < DIFF) {
-						stable = 1;
-					} else{
-						stable = 0;
-						break;
-					}
-				}
-				else {
-					if ( fabs(avgs[i-1] - avgs[i]) < DIFF) {
-						stable = 1;
-					} else{
-						stable = 0;
-						break;
-					}
-				}
-			}
+			stable_cycle_count = 0;
 			
-			int t;
-			if ( !stable ) { 	// Wait for STABLE_INTERVAL stable averages
-				t=0;
-			}
-			else{
-				if(t >= STABLE_INTERVAL) {
-					if (t == STABLE_INTERVAL) {
-						float percent_full = 0;
-						if ( prev_weight - avg  < -ERROR ) {
-							W_MAX = avg;
-							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							set_weight_picked(s->lock_weight,s->id,percent_full);
-						} else if( prev_weight - avg < ERROR) {
+			//TEST
+			//printf("Bin %d Weight +++\n",s->id);
+
+		} else if(weight_change<(-min_object_weight)) {
+			weight_state = 2;//Decreasing
+			weight_change = 0;
+
+			stable_cycle_count = 0;
+
+			//TEST
+			//printf("Bin %d Weight ---\n",s->id);
+
+		} else {
+			weight_state = 0;//Stable/No Change
+
+			stable_cycle_count++;
+		}
+
+		weight_percent_full = 100.0*(rolling_average/full_weight);
+
+		//TEST
+		//if(std_dev>(rolling_average/20.0)) {
+		//printf("Bin %d is %f percent full\n",s->id,weight_percent_full);
+		//}
+
+		//Pick detection/checking
+		object_weight_error = min_object_weight;
+		if((weight_state == 0)&&(stable_cycle_count==10)) {//The weight must have stabilized
+
+			//TEST
+			//printf("Bin %d detected a previous change in weight\n",s->id);
+
+			//Check to see if at least one object was taken
+			if(given_object_weight_enabled) {
+				if((stable_weight-rolling_average)>(object_weight_error)) {
+					//Something was picked
+					if((stable_weight-rolling_average)>(object_weight-object_weight_error)) {
+						//At least one object was picked
+						
+						if((stable_weight-rolling_average)>((2*object_weight)-object_weight_error)) {
+							//More than one object was picked
+							set_weight_picked(s->lock_weight, s->id, 2, weight_percent_full);
+
+							observed_object_count += 2;
+							observed_object_weight += (((stable_weight-rolling_average)/2)-observed_object_weight)/observed_object_count;
+							stable_weight = rolling_average;
 						} else {
-							percent_full = (avg - W_EMPTY)*100 / (W_MAX-W_EMPTY);
-							set_weight_picked(s->lock_weight,s->id,percent_full);
+							set_weight_picked(s->lock_weight, s->id, 1, weight_percent_full);
+
+							observed_object_count++;
+							observed_object_weight += ((stable_weight-rolling_average)-observed_object_weight)/observed_object_count;
+							stable_weight = rolling_average;
 						}
+					} else { 
+						set_weight_picked(s->lock_weight, s->id, 3, weight_percent_full);
+
+						stable_weight = rolling_average;
 					}
-					prev_weight = avg;
-					t++;
-				}
-				else {
-					t++;
-				}
-			}
+				} else /*if(rolling_average>stable_weight)*/ {
+					set_weight_picked(s->lock_weight, s->id, 0, weight_percent_full);
 
-
-			if(avg_i==AVGS-1) { 	// Check circular buffer
-				avg_i=0;
+					stable_weight = rolling_average;
+				}
 			} else {
-				avg_i++;
+				if((stable_weight-rolling_average)>(object_weight_error)) {
+					set_weight_picked(s->lock_weight, s->id, 1, weight_percent_full);
+
+					observed_object_count++;
+					observed_object_weight += ((stable_weight-rolling_average)-observed_object_weight)/observed_object_count;
+					//TEST
+					printf("Observed object weight is %f for Bin %d \n",observed_object_weight,s->id);
+					stable_weight = rolling_average;
+				} else /*if(rolling_average>stable_weight)*/ {
+					set_weight_picked(s->lock_weight, s->id, 0, weight_percent_full);
+
+					stable_weight = rolling_average;
+				}
 			}
 
+			
 		}
 
 	}

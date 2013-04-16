@@ -3,23 +3,77 @@
 #include <mysql.h>
 #include <string.h>
 
-#define MAX_BUF_LEN 100
+#include "scan.h"
+
+#define MAXBUFLEN 512
 #define MAX_ORDERS 1000
 
+char * get_pick_packet() {
+	char *message_send = malloc(sizeof(char) * 9 * MAXBUFLEN);
+	char *order = malloc(sizeof(char) * MAXBUFLEN);
+	memset(message_send, '\0', 9*MAXBUFLEN);
+	memset(order, '\0', MAXBUFLEN);
+
+	// Wait for new item to be scanned
+	char * scan;
+	do {
+		scan = get_scan("/home/aks/scan.txt");
+		usleep(500000);
+	} while(strcmp(order,scan) == 0);
+	strcpy(order, scan);
+
+	// Get collateral from scan
+	char * collat = get_collat(scan);
+
+	// Create packet
+	strcat(message_send, "1 ");
+	strcat(message_send, scan);
+	strcat(message_send, " ");
+	strcat(message_send, collat);
+
+	//printf("%s\n", message_send);
+
+	return message_send;
+}
+
 char * get_scan(char* path) {
-	FILE* file = fopen(path,"r");
+	char * scan = malloc(sizeof(char)*MAXBUFLEN);
+	FILE* file;
+
+	// Clear file
+	file = fopen(path,"w");
+	if (file == NULL){
+		printf("Could not read scan file");
+		return NULL;
+	}
+	fclose(file);
+
+	// Read in new scan
+	file = fopen(path,"r");
 	if (file == NULL){
 		return NULL;
 	}
+	unsigned int size;
 
-	char * scan = malloc(sizeof(char)*MAX_BUF_LEN);
-	int c,n =0;
+	do{
+		fseek(file, 0L, SEEK_END);
+		size = ftell(file);
+		fseek(file, 0L, SEEK_SET);
+	} while (size ==0);
 
-	while ((c = fgetc(file)) != '\n'){
-		scan[n++] = (char) c;
+	if(fread(scan, 1, size, file) != size ){
+		printf("Could not read scan file");
 	}
-	scan[n] = '\0';
+	fclose(file);
+	
+	scan[size-2] = '\0';
 
+	// Clear file
+	file = fopen(path,"w");
+	if (file == NULL){
+		printf("Could not read scan file");
+		return NULL;
+	}
 	fclose(file);
 
 	return scan;
@@ -27,8 +81,8 @@ char * get_scan(char* path) {
 
 char * get_collat(char* STB_ID){
 
-	char *returns = malloc(sizeof(char)*8*MAX_BUF_LEN);
-	memset(returns,'\0',8*MAX_BUF_LEN);
+	char *returns = malloc(sizeof(char)*8*MAXBUFLEN);
+	memset(returns,'\0',8*MAXBUFLEN);
 
 	MYSQL *conn;
 	MYSQL_RES * result;

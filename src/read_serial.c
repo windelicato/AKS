@@ -30,7 +30,7 @@ int main(int argc, const char *argv[])
 
 	FILE *file = fopen("/dev/ttyUSB0","r");
 	if(!file){
-		perror("Unable to open device");
+		perror("Unable to open device");//ERROR!
 		exit(-1);
 	}
 
