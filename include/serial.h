@@ -1,6 +1,7 @@
 #ifndef _SERIAL_H_
 #define _SERIAL_H_
 #include<semaphore.h>
+#include<stdio.h>
 
 struct scale{
 	FILE* fid;

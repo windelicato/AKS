@@ -17,10 +17,13 @@
 #define MAXBUFLEN 512
 #define QUEUELEN 5
 
+<<<<<<< HEAD
 extern char * config_file_path;
 
 char client_ip[INET_ADDRSTRLEN];
 
+=======
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 // Copies string in buffer buff into next sent network packet
 void set_msg_send(struct network_data *data, char* buff){
 	sem_wait(&data->lock_send);
@@ -123,6 +126,7 @@ void *server_daemon(void* arg) {
 	}
 
 	// main server loop - accept and handle requests 
+<<<<<<< HEAD
 	
 	pthread_t tid;
 	pthread_attr_t tattr;
@@ -133,10 +137,13 @@ void *server_daemon(void* arg) {
 	}
 
 	printf("CREATED SENDER THREAD\n");
+=======
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 	while (1) {
 		alen = sizeof(cad);
 
+<<<<<<< HEAD
 		printf("CHECKING FOR PACKET\n");
 		if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
 			perror("ECHOD: accept failed\n");
@@ -184,6 +191,49 @@ void *sender(void *arg) {
 }
 
 
+=======
+		if( sd2 == 0) {
+			if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
+				perror("ECHOD: accept failed\n");
+				exit(-1);
+			}
+
+			// receive the string sent by client
+			if (recv(sd2, &buff, data->size, 0) < 0) {
+				perror("Could not recvfrom: ");
+				exit(-1);
+			}
+			buff[data->size] = '\0';
+			printf("String recieved : %s\n", buff);
+			sem_wait(&data->lock_recv);
+			strcpy(data->msg_recv, buff);
+			sem_post(&data->lock_recv);
+
+			set_msg_send(data, handle_message(buff));
+
+			memset(&buff, '\0', data->size);
+		} else {
+			// HANDLE BUFF
+			sem_wait(&data->lock_send);
+			if(data->msg_send[0] != '\0') {
+				// send the received string back to client
+				if(send(sd2, data->msg_send, data->size, 0) < 0) {
+					perror("Could not send: ");
+					exit(-1);
+				}
+				memset(data->msg_send,'\0',sizeof(char)*data->size);
+				close(sd2);
+				sd2=0;
+			}
+			sem_post(&data->lock_send);
+		}
+		
+
+
+	}
+}
+
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -357,6 +407,7 @@ char * olp_send_recv(const char* host, int port, char* message) {
 	}
 
 	// receive message echoed back by server
+<<<<<<< HEAD
 //	if (recv(sd, &in_msg, MAXBUFLEN, 0) < 0) {
 //		perror("Failed to send message to server: ");
 //		exit(-1);
@@ -364,6 +415,15 @@ char * olp_send_recv(const char* host, int port, char* message) {
 //	in_msg[MAXBUFLEN] = '\0';
 
 //	printf("ECHOREQ: from server= %s\n", in_msg);
+=======
+	if (recv(sd, &in_msg, MAXBUFLEN, 0) < 0) {
+		perror("Failed to send message to server: ");
+		exit(-1);
+	}
+	in_msg[MAXBUFLEN] = '\0';
+
+	printf("ECHOREQ: from server= %s\n", in_msg);
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 	// close the socket   
 	close(sd);

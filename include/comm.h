@@ -17,7 +17,10 @@ void set_msg_send(struct network_data *data, char* buff);
 void get_msg_recv(struct network_data *data, char* buff);
 int network_init(struct network_data *data, int size);
 void *server_daemon(void *arg);
+<<<<<<< HEAD
 void *sender(void *arg);
+=======
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 
 

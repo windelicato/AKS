@@ -15,11 +15,17 @@
 #define MAXBUFLEN 100
 #define NUM_BINS 5
 
+<<<<<<< HEAD
 #define HAND_REMOVED_WAIT_CYCLES 100000
 #define OBJECT_REMOVED_WAIT_CYCLES 1000
 
 extern const char* log_file_path;
 extern const char* config_file_path;
+=======
+char *log_file = "/root/AKS/log/log.txt";
+//extern const char* log_file_path;
+//extern const char* config_file_path;
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 char chip0Init[2] = {0xFF,0xFF};
 
@@ -90,8 +96,15 @@ void detected_pick(int bin) {
 
 int main(int argc, const char *argv[])
 {
+<<<<<<< HEAD
 	init();	
 	
+=======
+
+	init();
+	
+	
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 	//TEST OF BASIC NETWORK CONTROLLED PICKING
 	//Start of the Message Receiving Process
 	// RECIEVE PACKET
@@ -108,7 +121,10 @@ int main(int argc, const char *argv[])
 			get_msg_recv(data, message_recv);
 		}
 		strcpy(message_send, message_recv);
+<<<<<<< HEAD
 		printf("Tokenizing packet...\n");
+=======
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 		char tokens[10][12];
 		char *next_str;
@@ -158,6 +174,7 @@ int main(int argc, const char *argv[])
 		/*
 		//TEST OF LED DRIVER
 		int button_pressed;
+<<<<<<< HEAD
 
 		button_pressed = i2c_readGPIOPin(0,1);
 
@@ -194,6 +211,25 @@ int main(int argc, const char *argv[])
 			//int i;
 			for(i = 0; i<num_bins; i++) {
 				//Light Bar Data
+=======
+
+		button_pressed = i2c_readGPIOPin(0,1);
+
+		if(button_pressed) {
+			
+			i2c_setLEDDriverPin(0,0,0);
+			i2c_setLEDDriverPin(0,1,0);
+		} else {
+			i2c_setLEDDriverPin(0,0,255);
+			i2c_setLEDDriverPin(0,1,255);	
+		}
+		*/
+
+		//Start of the Picking Process
+		while(1){
+			int i;
+			for(i = 0; i<num_scales; i++) {
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 				if(check_lightbar_picked(i,&(s.sem_lightbar[i]))==0) {
 					hand_in_bin_currently[i] = 1;
 				} else {
@@ -231,6 +267,7 @@ int main(int argc, const char *argv[])
 					} else {
 						object_removed_from_bin[i] = OBJECT_REMOVED_WAIT_CYCLES;
 					}
+<<<<<<< HEAD
 
 					//TEST
 					printf("Object removed from Bin %d\n", i);
@@ -246,6 +283,15 @@ int main(int argc, const char *argv[])
 				} else {
 					//Scale detected no pick
 					//Do nothing
+=======
+				}
+
+				if((check_percent_full(i,&(s.sem_weight[i])) == s.scale[i].percent_full)){
+				}
+				else {
+					s.scale[i].percent_full = check_percent_full(i,&(s.sem_weight[i]));
+					printf("Bin number %d percent full %f\n",i, s.scale[i].percent_full);
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 				}
 
 				if((hand_removed_from_bin[i]>0)&&(object_removed_from_bin[i]>0)) {

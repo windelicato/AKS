@@ -8,8 +8,11 @@
 #define DEFAULT_BUTTON_PIN {0,1,2,3,4}
 #define GPIO_PIN_BYTES i2c_gpio_ic_pin_bytes
 
+<<<<<<< HEAD
 extern int i2c_gpio_ic_pin_bytes;
 
+=======
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 int default_button_IC[] = DEFAULT_BUTTON_IC;
 int default_button_Pin[] = DEFAULT_BUTTON_PIN;
 

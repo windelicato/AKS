@@ -138,7 +138,11 @@ void *picked(void *arg){
 
 	//Info on specific objects to be stored in bin
 	int given_object_weight_enabled = 0;
+<<<<<<< HEAD
 	float object_weight = 0.05;
+=======
+	float object_weight = 0.02;
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 	float object_weight_error = 0.0;
 
 	//Weight buffer variables
@@ -176,6 +180,7 @@ void *picked(void *arg){
 	float weight = 0.0;
 
 	//Clear weight buffer to 0
+<<<<<<< HEAD
 	//memset(weight_buffer,0,weight_buffer_size);
 	int i;
 	for(i = 0; i<weight_buffer_size; i++) {
@@ -183,14 +188,23 @@ void *picked(void *arg){
 	}
 
 	set_weight_picked(s->lock_weight, s->id, 0, weight_percent_full);
+=======
+	memset(weight_buffer,0,weight_buffer_size);
+
+	set_weight_picked(s->lock_weight, s->id, weight_percent_full);
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 	while(1) { 			// Main loop
 		fgets(buff, 100, s->fid); 
 		weight = atof(buff);
+<<<<<<< HEAD
 		if((weight == 0.0)||(isnan(weight))) {
 			if(isnan(weight)) {
 				printf("NANSSSSSSSSSSSS\n");
 			}
+=======
+		if(weight == 0.0) {
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 			continue;//Bad data
 		}
 		//TEST
@@ -235,6 +249,7 @@ void *picked(void *arg){
 		for(i = 0;i<weight_buffer_size;i++) {
 			squared_std_dev += ((weight_buffer[i] - rolling_average)*(weight_buffer[i] - rolling_average))/weight_buffer_size;
 		}
+<<<<<<< HEAD
 
 		std_dev = sqrtf(squared_std_dev);
 		
@@ -330,20 +345,103 @@ void *picked(void *arg){
 				} else /*if(rolling_average>stable_weight)*/ {
 					set_weight_picked(s->lock_weight, s->id, 0, weight_percent_full);
 
+=======
+
+		std_dev = sqrtf(squared_std_dev);
+		
+		weight_change += rolling_average - previous_rolling_average;
+
+		//TEST
+		//printf("Bin %d standard deviation is %f \n",s->id,std_dev);
+		//printf("	Bin %d avg. weight is %f \n",s->id,rolling_average);
+		//printf("	Bin %d avg. weight change is %f \n",s->id,avg_weight_change);
+
+		//INITIALIZATION
+		if(initial_weighing>0) {
+			initial_weighing--;
+			if(initial_weighing == 0) {
+				full_weight = rolling_average;
+				stable_weight = full_weight;
+				//TEST
+				printf("SHOULD HAPPEN ONCE FOR BIN %d, Full is %f \n",s->id, full_weight);
+			}
+			continue;	
+		}
+
+		//Check for state change and picks
+		//State change/check
+		weight_state;
+		if(weight_change>min_object_weight) {
+			weight_state = 1;//Increasing
+			weight_change = 0;
+
+			stable_cycle_count = 0;
+			
+			//TEST
+			//printf("Bin %d Weight +++\n",s->id);
+
+		} else if(weight_change<(-min_object_weight)) {
+			weight_state = 2;//Decreasing
+			weight_change = 0;
+
+			stable_cycle_count = 0;
+
+			//TEST
+			//printf("Bin %d Weight ---\n",s->id);
+
+		} else {
+			weight_state = 0;//Stable/No Change
+
+			stable_cycle_count++;
+		}
+
+		weight_percent_full = 100.0*(rolling_average/full_weight);
+
+		//TEST
+		//if(std_dev>(rolling_average/20.0)) {
+		//printf("Bin %d is %f percent full\n",s->id,weight_percent_full);
+		//}
+
+		//Pick detection/checking
+		object_weight_error = min_object_weight;
+		if((weight_state == 0)&&(stable_cycle_count==10)) {//The weight must have stabilized
+
+			//TEST
+			//printf("Bin %d detected a previous change in weight\n",s->id);
+
+			//Check to see if at least one object was taken
+			if(given_object_weight_enabled) {
+				if((stable_weight-rolling_average)>(object_weight_error)) {
+					//Need to account for multiple items being taken !!!
+					set_weight_picked(s->lock_weight, s->id, weight_percent_full);
+
+					observed_object_count++;
+					observed_object_weight += ((stable_weight-rolling_average)-observed_object_weight)/observed_object_count;
+					stable_weight = rolling_average;
+				} else if(rolling_average>stable_weight) {
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 					stable_weight = rolling_average;
 				}
 			} else {
 				if((stable_weight-rolling_average)>(object_weight_error)) {
+<<<<<<< HEAD
 					set_weight_picked(s->lock_weight, s->id, 1, weight_percent_full);
 
+=======
+					
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 					observed_object_count++;
 					observed_object_weight += ((stable_weight-rolling_average)-observed_object_weight)/observed_object_count;
 					//TEST
 					printf("Observed object weight is %f for Bin %d \n",observed_object_weight,s->id);
 					stable_weight = rolling_average;
+<<<<<<< HEAD
 				} else /*if(rolling_average>stable_weight)*/ {
 					set_weight_picked(s->lock_weight, s->id, 0, weight_percent_full);
 
+=======
+				} else if(rolling_average>stable_weight) {
+>>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 					stable_weight = rolling_average;
 				}
 			}
