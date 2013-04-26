@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-#define _CONFIGURATION_H_
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
@@ -10,12 +6,9 @@
 #include"serial.h"
 #include"configuration.h"
 
-<<<<<<< HEAD
 char* config_file_path = "/root/AKS/config.txt";
 char* log_file_path = "/root/AKS/log/log.txt";
 
-=======
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 char* format = "BIN:%d Lightbar:%d SKU:%d Weight:%lf\n";
 
 int read_configuration_str(const char* path, char* buffer) {

@@ -1,5 +1,5 @@
 CC = gcc -I ./include
-CFLAGS =  -g -O2 -Wall
+CFLAGS =  -g -O2
 MYSQLFLAGS = `mysql_config --cflags --libs`
 
 INC = ./include
@@ -11,7 +11,7 @@ TEST = ./tests
 vpath %.h ./include
 vpath %.c ./src
 
-EXECS = bin_client olp_client
+EXECS = bin_client 
 
 all: $(EXECS)
 
@@ -28,7 +28,10 @@ $(OBJ)/led_functions.o: $(INC)/led_functions.h $(SRC)/led_functions.c
 	$(CC) $(CFLAGS) -c $(SRC)/led_functions.c -o $(OBJ)/led_functions.o
 
 $(OBJ)/button_functions.o: $(INC)/button_functions.h $(SRC)/button_functions.c
-	$(CC) $(CFLAG) -c $(SRC)/button_functions.c -o $(OBJ)/button_functions.o
+	$(CC) $(CFLAGS) -c $(SRC)/button_functions.c -o $(OBJ)/button_functions.o
+
+$(OBJ)/i2c_devices.o: $(INC)/i2c_devices.h $(SRC)/i2c_devices.c 
+	$(CC) $(CFLAGS) -c $(SRC)/i2c_devices.c -o $(OBJ)/i2c_devices.o
 
 $(OBJ)/scan.o: $(INC)/scan.h $(SRC)/scan.c
 	$(CC) $(CFLAGS) -c  $(SRC)/scan.c -o $(OBJ)/scan.o $(MYSQLFLAGS)
@@ -43,11 +46,11 @@ $(OBJ)/configuration.o: $(INC)/configuration.h $(SRC)/configuration.c
 	$(CC) $(CFLAGS) -c $(SRC)/configuration.c -o $(OBJ)/configuration.o 
 
  
-bin_client: $(OBJ)/configuration.o $(OBJ)/AKS_errors.o $(OBJ)/scan.o $(OBJ)/comm.o  $(OBJ)/serial.o $(OBJ)/lightbar_functions.o $(OBJ)/i2c_functions.o $(OBJ)/led_functions.o $(OBJ)/button_functions.o
-	$(CC) $(CFLAGS) $(SRC)/bin_client.c $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/configuration.o $(OBJ)/AKS_errors.o $(OBJ)/comm.o $(OBJ)/i2c_functions.o $(OBJ)/lightbar_functions.o $(OBJ)/led_functions.o $(OBJ)/button_functions.o -o $(BIN)/bin_client $(MYSQLFLAGS) -lpthread -lm
+bin_client: $(OBJ)/configuration.o $(OBJ)/AKS_errors.o $(OBJ)/scan.o $(OBJ)/comm.o  $(OBJ)/serial.o $(OBJ)/lightbar_functions.o $(OBJ)/i2c_functions.o $(OBJ)/led_functions.o $(OBJ)/button_functions.o $(OBJ)/i2c_devices.o
+	$(CC) $(CFLAGS) $(SRC)/bin_client.c $(OBJ)/scan.o $(OBJ)/serial.o $(OBJ)/configuration.o $(OBJ)/AKS_errors.o $(OBJ)/comm.o $(OBJ)/i2c_functions.o $(OBJ)/lightbar_functions.o $(OBJ)/led_functions.o $(OBJ)/button_functions.o $(OBJ)/i2c_devices.o -o $(BIN)/bin_client $(MYSQLFLAGS) -lpthread -lm
 
-olp_client: $(OBJ)/comm.o $(OBJ)/scan.o $(OBJ)/AKS_errors.o $(OBJ)/configuration.o
-	$(CC) $(CFLAGS) $(SRC)/olp_client.c $(OBJ)/scan.o $(OBJ)/comm.o $(OBJ)/AKS_errors.o $(OBJ)/configuration.o -o $(BIN)/olp_client $(MYSQLFLAGS)
+olp_client: $(OBJ)/comm.o $(OBJ)/scan.o
+	$(CC) $(CFLAGS) $(SRC)/olp_client.c $(OBJ)/scan.o $(OBJ)/comm.o -o $(BIN)/olp_client $(MYSQLFLAGS)
 
 olp_recv_test: $(OBJ)/comm.o 
 	$(CC) $(CFLAGS) $(TEST)/olp_recv_test.c $(OBJ)/comm.o -o $(TEST)/olp_recv_test

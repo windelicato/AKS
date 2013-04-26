@@ -17,13 +17,10 @@
 #define MAXBUFLEN 512
 #define QUEUELEN 5
 
-<<<<<<< HEAD
 extern char * config_file_path;
 
 char client_ip[INET_ADDRSTRLEN];
 
-=======
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 // Copies string in buffer buff into next sent network packet
 void set_msg_send(struct network_data *data, char* buff){
 	sem_wait(&data->lock_send);
@@ -52,7 +49,13 @@ int network_init(struct network_data *data, int size){
 	pthread_attr_init(&data->thread_attr);
 	if( pthread_create(&data->thread_id, &data->thread_attr, server_daemon, data) < 0) { 
 		perror("Unable to create server daemon thread");
-		exit(-1);
+//		exit(-1);
+	}
+
+
+	pthread_attr_init(&data->sender_attr);
+	if(pthread_create(&data->sender_id, &data->sender_attr, sender, data) < 0) {
+		perror("Unable to create sender thread");
 	}
 
 
@@ -126,24 +129,12 @@ void *server_daemon(void* arg) {
 	}
 
 	// main server loop - accept and handle requests 
-<<<<<<< HEAD
 	
-	pthread_t tid;
-	pthread_attr_t tattr;
 
-	pthread_attr_init(&tattr);
-	if(pthread_create(&tid, &tattr, sender, &data) != 0) {
-		perror("Unable to create sender thread");
-	}
-
-	printf("CREATED SENDER THREAD\n");
-=======
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 
 	while (1) {
 		alen = sizeof(cad);
 
-<<<<<<< HEAD
 		printf("CHECKING FOR PACKET\n");
 		if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
 			perror("ECHOD: accept failed\n");
@@ -162,12 +153,19 @@ void *server_daemon(void* arg) {
 		}
 		buff[data->size] = '\0';
 		printf("String recieved : %s\n", buff);
+
+		printf("Waiting...\n");
 		sem_wait(&data->lock_recv);
+		printf("Acquired...\n");
+
 		strcpy(data->msg_recv, buff);
-		printf("Copied packet into msg_recv\n");
+
 		sem_post(&data->lock_recv);
+		printf("Copied packet into msg_recv\n");
 
 		set_msg_send(data, handle_message(buff));
+		printf("Handled buffer\n");
+
 		memset(&buff, '\0', data->size);
 		close(sd2);
 	}
@@ -178,62 +176,19 @@ void *sender(void *arg) {
 
 	printf("Initialized SENDER thread\n");
 	while(1) {
-//		sem_wait(&data->lock_send);
-//		printf("\tCHECKING FOR SEND MESSAGE\n");
-//		if(data->msg_send[0] != '\0') {
-//			printf("SENDING MESSAGE\n");
-//			// send the received string back to client
-//			olp_send_recv(client_ip, atoi(SERVERPORT), data->msg_send); 
-//			memset(data->msg_send,'\0',sizeof(char)*data->size);
-//		}
-//		sem_post(&data->lock_send);
-	}
-}
-
-
-=======
-		if( sd2 == 0) {
-			if ( (sd2 = accept(sd, (struct sockaddr *)&cad, &alen)) < 0) {
-				perror("ECHOD: accept failed\n");
-				exit(-1);
-			}
-
-			// receive the string sent by client
-			if (recv(sd2, &buff, data->size, 0) < 0) {
-				perror("Could not recvfrom: ");
-				exit(-1);
-			}
-			buff[data->size] = '\0';
-			printf("String recieved : %s\n", buff);
-			sem_wait(&data->lock_recv);
-			strcpy(data->msg_recv, buff);
-			sem_post(&data->lock_recv);
-
-			set_msg_send(data, handle_message(buff));
-
-			memset(&buff, '\0', data->size);
-		} else {
-			// HANDLE BUFF
-			sem_wait(&data->lock_send);
-			if(data->msg_send[0] != '\0') {
-				// send the received string back to client
-				if(send(sd2, data->msg_send, data->size, 0) < 0) {
-					perror("Could not send: ");
-					exit(-1);
-				}
-				memset(data->msg_send,'\0',sizeof(char)*data->size);
-				close(sd2);
-				sd2=0;
-			}
-			sem_post(&data->lock_send);
+		sem_wait(&data->lock_send);
+		if(data->msg_send[0] != '\0') {
+			printf("SENDING MESSAGE\n");
+			// send the received string back to client
+			olp_send_recv(client_ip, atoi(SERVERPORT), data->msg_send); 
+			memset(data->msg_send,'\0',sizeof(char)*data->size);
+			printf("message reset%d\n",data->msg_send);
 		}
-		
-
-
+		sem_post(&data->lock_send);
 	}
 }
 
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
+
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -371,7 +326,7 @@ char * olp_send_recv(const char* host, int port, char* message) {
 	else {				
 		// print error message and exit	
 		printf("ECHOREQ: bad port number %d\n", port);
-		exit(-1);
+//		exit(-1);
 	}
 
 	// convert host name to equivalent IP address and copy to sad 
@@ -380,7 +335,7 @@ char * olp_send_recv(const char* host, int port, char* message) {
 
 	if ( ((char *)ptrh) == NULL ) {
 		printf("ECHOREQ: invalid host: %s\n", host);
-		exit(-1);
+//		exit(-1);
 	}
 
 	memcpy(&sad.sin_addr, ptrh->h_addr, ptrh->h_length);
@@ -390,24 +345,25 @@ char * olp_send_recv(const char* host, int port, char* message) {
 	sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sd < 0) {
 		printf("ECHOREQ: socket creation failed\n");
-		exit(-1);
+		//exit(-1);
 	}
 
 	// connect the socket to the specified server 
 
 	if (connect(sd, (struct sockaddr *)&sad, sizeof(sad)) < 0) {
 		perror("ECHOREQ: connect failed");
-		exit(-1);
+		close(sd);
+		return "FAILED";
+		//exit(-1);
 	}
 
 	// send message to server
 	if (send(sd, message, strlen(message), 0) < 0) {
 		perror("Failed to send message to server: ");
-		exit(-1);
+		//exit(-1);
 	}
 
 	// receive message echoed back by server
-<<<<<<< HEAD
 //	if (recv(sd, &in_msg, MAXBUFLEN, 0) < 0) {
 //		perror("Failed to send message to server: ");
 //		exit(-1);
@@ -415,19 +371,13 @@ char * olp_send_recv(const char* host, int port, char* message) {
 //	in_msg[MAXBUFLEN] = '\0';
 
 //	printf("ECHOREQ: from server= %s\n", in_msg);
-=======
-	if (recv(sd, &in_msg, MAXBUFLEN, 0) < 0) {
-		perror("Failed to send message to server: ");
-		exit(-1);
-	}
-	in_msg[MAXBUFLEN] = '\0';
-
-	printf("ECHOREQ: from server= %s\n", in_msg);
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
+//
+	shutdown(sd,2);
 
 	// close the socket   
 	close(sd);
 
+	printf("Done sending\n");
 	// terminate the client program gracefully 
-	return &in_msg;
+	return "DONE";
 }

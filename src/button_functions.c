@@ -4,22 +4,64 @@
 #include <stdlib.h>
 #include "i2c_functions.h"
 
-#define DEFAULT_BUTTON_IC {1,1,1,1,1}
-#define DEFAULT_BUTTON_PIN {0,1,2,3,4}
+#define DEFAULT_BUTTON_IC {1,1,1,1,1,1}
+#define DEFAULT_BUTTON_PIN {9,10,7,6,0,8}
 #define GPIO_PIN_BYTES i2c_gpio_ic_pin_bytes
 
-<<<<<<< HEAD
+#define BF_INT 10;
+
+#define DEBUG
+
 extern int i2c_gpio_ic_pin_bytes;
 
-=======
->>>>>>> cd8a344e1562cbe025da487986df2a37154e67b3
 int default_button_IC[] = DEFAULT_BUTTON_IC;
 int default_button_Pin[] = DEFAULT_BUTTON_PIN;
 
 int* button_IC = default_button_IC;
 int* button_Pin = default_button_Pin;
 
+int button_number_of_buttons = sizeof(default_button_IC)/sizeof(int);
+
+int bf_i = 0;
+
+int button_init() {
+	//Set all button pins to inputs
+	
+	#ifdef DEBUG
+	//TEST
+	//printf("Running button_init()...\n");
+	#endif
+
+	int i, err;
+	for(i=0;i<button_number_of_buttons;i++) {
+
+		//TEST
+	//	printf("Button %d being set to an input...\n", i);
+
+		if((err = i2c_setGPIOPin(button_IC[i],button_Pin[i],1))<0) {
+			return err;
+		}
+		if((err = i2c_writeGPIOPins(button_IC[i]))<0) {
+			return err;
+		}
+	}
+
+	#ifdef DEBUG
+	//TEST
+	//printf("Finished button_init().\n");
+	#endif
+
+	return 0;
+}
+
+void button_refresh() {
+
+	button_init();
+
+}
+
 void load_button_setup(int* buttonICs, int* buttonPins) {
+	button_number_of_buttons = sizeof(buttonICs)/sizeof(int);
 	button_IC = buttonICs;
 	button_Pin = buttonPins;
 }
@@ -74,5 +116,10 @@ int getAllButtonsState(int* buf) {
 	
 	free(tempArray);
 
+	return 0;
+} 
+
+int button_shutdown() {
+	
 	return 0;
 }
