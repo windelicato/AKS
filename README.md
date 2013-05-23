@@ -1,5 +1,6 @@
 AKS PROJECT FILES
 =================
+![Alt text](https://raw.github.com/windelicato/AKS/master/picture.jpg "AKS")
 
 Description
 -----------
